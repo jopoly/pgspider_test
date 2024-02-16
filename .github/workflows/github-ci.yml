@@ -2,7 +2,6 @@ name: Create RPM Release
 
 on:
   workflow_dispatch:
-    branches: test
 
 env:
   ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}

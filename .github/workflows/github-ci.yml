@@ -51,9 +51,12 @@ jobs:
           -f $DOCKERFILE .
     - name: Copy RPM Artifact
       run: |
+        echo $RPM_ARTIFACT_DIR
         mkdir -p $RPM_ARTIFACT_DIR
         docker run -d --name test $IMAGE_TAG /usr/sbin/init
         docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
+        pwd
+        ls $RPM_ARTIFACT_DIR
 
     - name: Clean up
       run: |

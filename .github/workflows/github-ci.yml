@@ -1,0 +1,150 @@
+name: Create RPM Release
+
+on:
+  workflow_dispatch:
+
+env:
+  ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  OWNER_GITHUB: ""
+  PGSPIDER_PROJECT_GITHUB: ""
+  PGSPIDER_RELEASE_ID: ""
+  RPM_ARTIFACT_DIR: "fdw_rpm"
+  PGSPIDER_RELEASE_VERSION: "4.0.0"
+  PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
+  RPM_DISTRIBUTION_TYPE: "rhel8"
+  PGSPIDER_RPM_ID: ""
+
+jobs:
+  project_build_rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: docker:24.0.5
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      IMAGE_TAG: "pgspider_create_rpm"
+      DOCKERFILE: "Dockerfile_rpm"
+      PGSPIDER_PROJECT_GITHUB: "${PGSPIDER_PROJECT_GITHUB}"
+      PGSPIDER_RELEASE_ID: "${PGSPIDER_RELEASE_ID}"
+      RPM_DISTRIBUTION_TYPE: "${RPM_DISTRIBUTION_TYPE}"
+      PGSPIDER_RPM_ID_POSTFIX: ""
+      CI_PIPELINE_ID: "${GITHUB_RUN_ID}"
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Before scripts
+      run: |
+        apk add curl
+        docker rm $(docker stop test) || true
+        docker rmi $IMAGE_TAG || true
+        echo "y" | docker system prune
+
+    - name: Build RPM
+      run: |
+        curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
+        docker build -t $IMAGE_TAG \
+          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
+          --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
+          --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
+          -f $DOCKERFILE .
+    - name: Copy RPM Artifact
+      run: |
+        mkdir -p $RPM_ARTIFACT_DIR
+        docker run -d --name test $IMAGE_TAG /usr/sbin/init
+        docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
+
+    - name: Clean up
+      run: |
+        docker rm $(docker stop test)
+        docker rmi $IMAGE_TAG
+        cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
+        rm -rf $RPM_ARTIFACT_DIR/x86_64/
+
+    - name: Upload RPM Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: $RPM_ARTIFACT_DIR
+        path: $RPM_ARTIFACT_DIR
+
+  # project_publish_rpm:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #   - name: Checkout Repository
+  #     uses: actions/checkout@v2
+
+  #   - name: Install curl
+  #     run: sudo apt-get update -qq && sudo apt-get install -y -qq curl
+
+  #   - name: Download RPM Artifact
+  #     uses: actions/download-artifact@v2
+  #     with:
+  #       name: $RPM_ARTIFACT_DIR
+
+  #   - name: Publish RPM
+  #     run: |
+  #       echo "Publishing ....."
+  #       assets_uri="https://uploads.github.com/repos/${OWNER_GITHUB}/${PGSPIDER_PROJECT_GITHUB}/releases/${PGSPIDER_RELEASE_ID}/assets"
+  #       binary_dir="--data-binary \"@${RPM_ARTIFACT_DIR}\""
+  #       curl_command="curl -L \
+  #         -X POST \
+  #         -H \"Accept: application/vnd.github+json\" \
+  #         -H \"Authorization: Bearer ${ACCESS_TOKEN}\" \
+  #         -H \"X-GitHub-Api-Version: 2022-11-28\" \
+  #         -H \"Content-Type: application/octet-stream\" \
+  #         --insecure"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-debugsource-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-debugsource-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-docs-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-docs-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-llvmjit-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-llvmjit-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-pltcl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-pltcl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+  #       eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-test-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+  #         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-test-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
+
+  # project_publish_image:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #   - name: Checkout Repository
+  #     uses: actions/checkout@v2
+
+  #   - name: Set up Docker
+  #     uses: docker/setup-buildx-action@v1
+
+  #   - name: Login to Container Registry
+  #     run: echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
+  #   - name: Publish Docker Image
+  #     run: |
+  #       IMAGE_NAME="pgspider"
+  #       IMAGE_TAG="${GITHUB_RUN_ID}"
+  #       PGSPIDER_RPM_ID_POSTFIX=""
+  #       if [ $PGSPIDER_RPM_ID ]; then
+  #         PGSPIDER_RPM_ID_POSTFIX="-$PGSPIDER_RPM_ID"
+  #       else
+  #         PGSPIDER_RPM_ID_POSTFIX="-$CI_PIPELINE_ID"
+  #       fi
+  #       docker buildx build -t $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG \
+  #         --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
+  #         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
+  #         --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
+  #         --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} \
+  #         --push .
+  #       docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG

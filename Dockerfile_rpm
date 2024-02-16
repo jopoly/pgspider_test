@@ -1,0 +1,76 @@
+FROM rockylinux:8.8
+
+# For version management
+ARG PGSPIDER_BASE_POSTGRESQL_VERSION
+ARG PGSPIDER_RELEASE_VERSION
+ARG DISTRIBUTION_TYPE
+
+# For proxy
+ARG proxy
+ARG no_proxy
+
+ENV http_proxy ${proxy}
+ENV https_proxy ${proxy}
+ENV no_proxy ${no_proxy}
+
+# Add postgres repository for pgdg-srpm-macros
+RUN dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+
+# Install packages
+RUN dnf -y install sudo rpm-build gcc bison flex perl-ExtUtils-Embed \
+    python3-devel tcl-devel readline-devel zlib-devel openssl-devel \
+    krb5-devel e2fsprogs-devel libxml2-devel libxslt-devel pam-devel \
+    systemtap-sdt-devel libuuid-devel openldap-devel systemd-devel \
+    make openssh openssh-server openssh-clients gettext-devel zlib \
+    gcc-c++ libcurl-devel jansson-devel sudo unzip tar clang-devel \
+    libicu-devel llvm-devel perl perl-generators selinux-policy \
+    glibc-locale-source glibc-langpack-ja pgdg-srpm-macros lz4-devel \
+    libzstd-devel docbook-dtds docbook-style-xsl libxslt
+
+RUN dnf --enablerepo=powertools install -y perl-IPC-Run
+
+# Create non-super user and put ROM files.
+# User on host will mapped to this user.
+RUN useradd -m user1
+RUN echo "user1:user1" | chpasswd
+RUN echo "user1 ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Transfer files: PGSpider source code
+RUN mkdir -p /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
+COPY ./ /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
+
+RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/rpm/* /home/user1
+RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf /home/user1
+
+RUN rm -rf  /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/.git                  \
+            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/rpm                   \
+            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf  \
+            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/PGSpider_rpm          \
+            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/centos-gpg-keys-8-3.el8.noarch.rpm
+
+# Change permission
+RUN chown user1:user1 -R /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
+RUN chmod +x /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/configure
+
+# Add paths.
+RUN echo /usr/pgsql-16/lib > /etc/ld.so.conf.d/pgspider.conf
+RUN ldconfig
+RUN echo "export PATH=\$PATH:/usr/pgsql-16/bin" >> /etc/bashrc
+RUN source /etc/bashrc
+ENV PATH $PATH:/usr/pgsql-16/bin
+
+########## Start RPM building ##########
+USER user1
+WORKDIR /home/user1
+RUN tar cvjf pgspider-${PGSPIDER_RELEASE_VERSION}.tar.bz2 pgspider-${PGSPIDER_RELEASE_VERSION}
+
+# Build RPM file.
+WORKDIR /home/user1
+RUN rpmbuild -ba -D "_sourcedir $(pwd)" -D "dist ${DISTRIBUTION_TYPE}" -D "pgmajorversion ${PGSPIDER_BASE_POSTGRESQL_VERSION}" -D "pgreleaseversion ${PGSPIDER_RELEASE_VERSION}" PGSpider.spec
+########################################
+
+# unset proxy
+ENV http_proxy=
+ENV https_proxy=
+ENV no_proxy=
+RUN sudo sed -i "s/.*proxy=.*/proxy=/g" /etc/dnf/dnf.conf

@@ -1,0 +1,5 @@
+*.sh
+!docker-entrypoint.sh
+Jenkinsfile
+PGSpider_rpm/
+.gitlab-ci.yml

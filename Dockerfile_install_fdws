@@ -1,0 +1,130 @@
+ARG baseimage
+
+FROM ${baseimage}
+
+USER root
+
+ARG PG_INS=/usr/pgsql-16
+
+ARG proxy
+ARG no_proxy
+
+ARG SQLITE_URL_PACKAGE
+ARG SQLITE_ACCESS_TOKEN
+
+ARG SQLITE_FDW_URL_PACKAGE
+ARG SQLITE_FDW_ACCESS_TOKEN
+
+ARG INFLUXDB_CXX_URL_PACKAGE
+ARG INFLUXDB_CXX_ACCESS_TOKEN
+
+ARG INFLUXDB_FDW_URL_PACKAGE
+ARG INFLUXDB_FDW_ACCESS_TOKEN
+
+ARG AWS_S3_CPP_URL_PACKAGE
+ARG AWS_S3_CPP_ACCESS_TOKEN
+
+ARG ARROW_URL_PACKAGE
+ARG ARROW_ACCESS_TOKEN
+
+ARG PARQUET_S3_FDW_URL_PACKAGE
+ARG PARQUET_S3_FDW_ACCESS_TOKEN
+
+ENV http_proxy ${proxy}
+ENV https_proxy ${proxy}
+ENV no_proxy ${no_proxy}
+
+# Download require FDWs
+# sqlite_fdw require sqlite 3.42.0
+RUN if [[ -n ${SQLITE_FDW_URL_PACKAGE} ]]; then \
+        if [[ -z ${SQLITE_FDW_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O sqlite_fdw.rpm ${SQLITE_FDW_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${SQLITE_FDW_ACCESS_TOKEN}" ${SQLITE_FDW_URL_PACKAGE} -o /root/sqlite_fdw.rpm --insecure ; \
+        fi \
+    fi
+# sqlite
+RUN if [[ -n ${SQLITE_URL_PACKAGE} ]]; then \
+        if [[ -z ${SQLITE_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O sqlite.rpm ${SQLITE_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${SQLITE_ACCESS_TOKEN}" ${SQLITE_URL_PACKAGE} -o /root/sqlite.rpm --insecure ; \
+        fi \
+    fi
+# influxdb_fdw require influxdb-cxx
+RUN if [[ -n ${INFLUXDB_FDW_URL_PACKAGE} ]]; then \
+        if [[ -z ${INFLUXDB_FDW_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O influxdb_fdw.rpm ${INFLUXDB_FDW_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${INFLUXDB_FDW_ACCESS_TOKEN}" ${INFLUXDB_FDW_URL_PACKAGE} -o /root/influxdb_fdw.rpm --insecure ; \
+        fi \
+    fi
+## influxdb-cxx
+RUN if [[ -n ${INFLUXDB_CXX_URL_PACKAGE} ]]; then \
+        if [[ -z ${INFLUXDB_CXX_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O influxdb_cxx.rpm ${INFLUXDB_CXX_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${INFLUXDB_CXX_ACCESS_TOKEN}" ${INFLUXDB_CXX_URL_PACKAGE} -o /root/influxdb_cxx.rpm --insecure ; \
+        fi \
+    fi
+# parquet_s3_fdw require aws-s3-cpp && arrow
+RUN if [[ -n ${PARQUET_S3_FDW_URL_PACKAGE} ]]; then \
+        if [[ -z ${PARQUET_S3_FDW_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O parquet_s3_fdw.rpm ${PARQUET_S3_FDW_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${PARQUET_S3_FDW_ACCESS_TOKEN}" ${PARQUET_S3_FDW_URL_PACKAGE} -o /root/parquet_s3_fdw.rpm --insecure ; \
+        fi \
+    fi
+## aws-s3-cpp
+RUN if [[ -n ${AWS_S3_CPP_URL_PACKAGE} ]]; then \
+        if [[ -z ${AWS_S3_CPP_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O aws_s3_cpp.rpm ${AWS_S3_CPP_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${AWS_S3_CPP_ACCESS_TOKEN}" ${AWS_S3_CPP_URL_PACKAGE} -o /root/aws_s3_cpp.rpm --insecure ; \
+        fi \
+    fi
+# arrow
+RUN if [[ -n ${ARROW_URL_PACKAGE} ]]; then \
+        if [[ -z ${ARROW_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ -O arrow.rpm ${ARROW_URL_PACKAGE} --no-check-certificate ; \
+        else \
+            curl --header "PRIVATE-TOKEN: ${ARROW_ACCESS_TOKEN}" ${ARROW_URL_PACKAGE} -o /root/arrow.rpm --insecure ; \
+        fi \
+    fi
+
+# Install FDWs
+# sqlite_fdw
+## to install influxdb_fdw, you need install sqlite first 
+RUN if [[ -n ${SQLITE_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/sqlite.rpm ; \
+    fi
+RUN if [[ -n ${SQLITE_FDW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/sqlite_fdw.rpm ; \
+    fi
+# influxdb_fdw
+## to install influxdb_fdw, you need install influxdb-cxx first 
+RUN if [[ -n ${INFLUXDB_CXX_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/influxdb_cxx.rpm ; \
+    fi
+RUN if [[ -n ${INFLUXDB_FDW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/influxdb_fdw.rpm ; \
+    fi
+# parquet_s3_fdw
+## to install parquet_s3_fdw, you need install aws-s3-cpp && arrow first
+RUN if [[ -n ${ARROW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/arrow.rpm ; \
+    fi
+RUN if [[ -n ${AWS_S3_CPP_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/aws_s3_cpp.rpm ; \
+    fi
+RUN if [[ -n ${PARQUET_S3_FDW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/parquet_s3_fdw.rpm ; \
+    fi
+
+# unset proxy to avoid personal information security
+ENV http_proxy =
+ENV https_proxy =
+ENV no_proxy =
+RUN sed -i "s/.*proxy=.*/proxy=/g" /etc/dnf/dnf.conf
+
+USER pgspider

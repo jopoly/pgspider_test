@@ -1,0 +1,136 @@
+stages:
+  - build_rpm
+  - publish_rpm
+  - publish_image
+
+default:
+  tags:
+    - benzaiten-autoscale
+
+# Global variable (can configure outside in gitlab web)
+variables:
+  PROXY: "http://proxy.toshiba.co.jp:8080"
+  NO_PROXY: "127.0.0.1,tccloud2.toshiba.co.jp,localhost,docker"
+  ACCESS_TOKEN: "J-CyStgYPMWeTFSY_Ubs"
+  RPM_ARTIFACT_DIR: "fdw_rpm"
+  PGSPIDER_RELEASE_VERSION: "4.0.0"
+  PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
+  RPM_DISTRIBUTION_TYPE: "rhel8"
+
+project_build_rpm:
+  stage: build_rpm
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    IMAGE_TAG: "pgspider_create_rpm"
+    DOCKERFILE: "Dockerfile_rpm"
+  before_script:
+    - export http_proxy=$PROXY && export https_proxy=$PROXY
+    - export no_proxy=$NO_PROXY
+    - apk add curl
+    # handle if the previous pipeline error
+    - docker rmi $IMAGE_TAG || true
+    - echo "y" | docker system prune
+    - docker rm $(docker stop test) || true
+  script:
+    - echo "Building RPM ....."
+    - curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
+    - docker build -t $IMAGE_TAG
+                  --build-arg proxy=$PROXY
+                  --build-arg no_proxy=$NO_PROXY
+                  --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION
+                  --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION
+                  --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
+                  -f $DOCKERFILE .
+    # get rpm file from docker image
+    - mkdir -p $RPM_ARTIFACT_DIR
+    - docker run -d --name test $IMAGE_TAG /usr/sbin/init
+    - docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
+    # clean-up: delete docker image
+    - docker rm $(docker stop test)
+    - docker rmi $IMAGE_TAG
+    - cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
+    - rm -rf $RPM_ARTIFACT_DIR/x86_64/
+  artifacts:
+    paths:
+      - $RPM_ARTIFACT_DIR
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+
+# Push RPM to Registry job
+project_publish_rpm:
+  stage: publish_rpm
+  before_script:
+    - export http_proxy=$PROXY && export https_proxy=$PROXY
+    - export no_proxy=$NO_PROXY
+    - apt-get update -qq && apt-get install -y -qq curl
+  variables:
+    curl_command: "curl --header \"PRIVATE-TOKEN: $ACCESS_TOKEN\" --insecure --upload-file"
+    package_uri: "https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/$CI_PROJECT_ID/packages/generic/rpm_$RPM_DISTRIBUTION_TYPE/$PGSPIDER_BASE_POSTGRESQL_VERSION"
+  script:
+    - echo "Publishing ....."
+    # pgspider
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                          $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # contrib
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-contrib-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-contrib-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # debugsource
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-debugsource-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-debugsource-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # devel
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-devel-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-devel-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # docs
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-docs-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-docs-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # libs
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-libs-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-libs-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # llvmjit
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-llvmjit-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-llvmjit-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # plperl
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-plperl-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-plperl-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # pltcl
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-pltcl-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-pltcl-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # server
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-server-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-server-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+    # test
+    - eval "$curl_command $RPM_ARTIFACT_DIR/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-test-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64.rpm
+                        $package_uri/pgspider$PGSPIDER_BASE_POSTGRESQL_VERSION-test-$PGSPIDER_RELEASE_VERSION-$RPM_DISTRIBUTION_TYPE.x86_64-$CI_PIPELINE_ID.rpm"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+
+project_publish_image:
+  stage: publish_image
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    IMAGE_NAME: "pgspider"
+    IMAGE_TAG: "$CI_PIPELINE_ID"
+  before_script:
+    - export http_proxy=$PROXY && export https_proxy=$PROXY
+    - export no_proxy=$NO_PROXY
+    - docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG || true
+    - echo "y" | docker system prune
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - if [ $PGSPIDER_RPM_ID ]; then PGSPIDER_RPM_ID_POSTFIX="-$PGSPIDER_RPM_ID"; else PGSPIDER_RPM_ID_POSTFIX="-$CI_PIPELINE_ID"; fi
+    - docker build -t $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
+                  --build-arg proxy=$PROXY
+                  --build-arg no_proxy=$NO_PROXY
+                  --build-arg ACCESS_TOKEN=$ACCESS_TOKEN
+                  --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
+                  --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION
+                  --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION
+                  --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} .
+    - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
+    - docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'

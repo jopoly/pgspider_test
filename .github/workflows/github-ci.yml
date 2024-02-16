@@ -66,12 +66,14 @@ jobs:
         pwd
         ls $RPM_ARTIFACT_DIR
         rm -rf $RPM_ARTIFACT_DIR/x86_64/
+        echo ${GITHUB_WORKSPACE}
+        echo $GITHUB_WORKSPACE
 
     - name: Upload RPM Artifact
       uses: actions/upload-artifact@v2
       with:
         name: $RPM_ARTIFACT_DIR
-        path: $RPM_ARTIFACT_DIR
+        path: $GITHUB_WORKSPACE/$RPM_ARTIFACT_DIR
 
   # project_publish_rpm:
   #   runs-on: ubuntu-latest

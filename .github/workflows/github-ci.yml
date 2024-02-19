@@ -69,8 +69,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: $RPM_ARTIFACT_DIR
-        # path: $GITHUB_WORKSPACE/$RPM_ARTIFACT_DIR
-        path: /__w/pgspider_test/pgspider_test
+        path: ${GITHUB_WORKSPACE}/${RPM_ARTIFACT_DIR}
 
   # project_publish_rpm:
   #   runs-on: ubuntu-latest

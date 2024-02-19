@@ -55,25 +55,22 @@ jobs:
         mkdir -p $RPM_ARTIFACT_DIR
         docker run -d --name test $IMAGE_TAG /usr/sbin/init
         docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
-        pwd
-        ls $RPM_ARTIFACT_DIR
 
     - name: Clean up
       run: |
         docker rm $(docker stop test)
         docker rmi $IMAGE_TAG
         cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
-        pwd
-        ls $RPM_ARTIFACT_DIR
         rm -rf $RPM_ARTIFACT_DIR/x86_64/
-        echo ${GITHUB_WORKSPACE}
-        echo $GITHUB_WORKSPACE
+        echo $GITHUB_WORKSPACE/$RPM_ARTIFACT_DIR
+        echo ${GITHUB_WORKSPACE}/${RPM_ARTIFACT_DIR}
 
     - name: Upload RPM Artifact
       uses: actions/upload-artifact@v2
       with:
         name: $RPM_ARTIFACT_DIR
-        path: $GITHUB_WORKSPACE/$RPM_ARTIFACT_DIR
+        # path: $GITHUB_WORKSPACE/$RPM_ARTIFACT_DIR
+        path: /__w/pgspider_test/pgspider_test
 
   # project_publish_rpm:
   #   runs-on: ubuntu-latest

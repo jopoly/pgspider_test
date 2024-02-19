@@ -30,7 +30,7 @@ jobs:
       PGSPIDER_RPM_ID_POSTFIX: ""
       CI_PIPELINE_ID: ${GITHUB_RUN_ID}
       # ARTIFACT_PATH: ${{ format(' {0}/{1} ', ${GITHUB_WORKSPACE}, ${RPM_ARTIFACT_DIR})}}
-      ARTIFACT_PATH: '${{ github.workspace }}/$RPM_ARTIFACT_DIR'
+      ARTIFACT_PATH: '${{ github.workspace }}/${{ RPM_ARTIFACT_DIR }}'
 
     steps:
     - name: Checkout Repository

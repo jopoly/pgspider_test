@@ -70,6 +70,7 @@ jobs:
         path: '${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}'
 
   project_publish_rpm:
+    needs: project_build_rpm
     runs-on: ubuntu-latest
 
     steps:

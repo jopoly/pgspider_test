@@ -29,6 +29,7 @@ jobs:
       PGSPIDER_RELEASE_ID: ${PGSPIDER_RELEASE_ID}
       PGSPIDER_RPM_ID_POSTFIX: ""
       CI_PIPELINE_ID: ${GITHUB_RUN_ID}
+      ARTIFACT_PATH: ${GITHUB_WORKSPACE}/${RPM_ARTIFACT_DIR}
 
     steps:
     - name: Checkout Repository
@@ -62,14 +63,13 @@ jobs:
         docker rmi $IMAGE_TAG
         cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
         rm -rf $RPM_ARTIFACT_DIR/x86_64/
-        echo $GITHUB_WORKSPACE/$RPM_ARTIFACT_DIR
-        echo ${GITHUB_WORKSPACE}/${RPM_ARTIFACT_DIR}
+        echo $ARTIFACT_PATH
 
     - name: Upload RPM Artifact
       uses: actions/upload-artifact@v2
       with:
         name: $RPM_ARTIFACT_DIR
-        path: ${GITHUB_WORKSPACE}/${RPM_ARTIFACT_DIR}
+        path: $ARTIFACT_PATH
 
   # project_publish_rpm:
   #   runs-on: ubuntu-latest

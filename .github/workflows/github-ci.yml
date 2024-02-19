@@ -37,7 +37,7 @@ jobs:
     - name: Test
       run: |
         echo $GITHUB_WORKSPACE
-        echo '${{ github.workspace }}/${{ RPM_ARTIFACT_DIR }}'
+        echo '${{ github.workspace }}/${RPM_ARTIFACT_DIR}'
 
     # - name: Before scripts
     #   run: |

@@ -35,41 +35,45 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
 
-    - name: Before scripts
+    - name: Test
       run: |
-        apk add curl
-        docker rm $(docker stop test) || true
-        docker rmi $IMAGE_TAG || true
-        echo "y" | docker system prune
+        echo $GITHUB_WORKSPACE
 
-    - name: Build RPM
-      run: |
-        curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
-        docker build -t $IMAGE_TAG \
-          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
-          --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
-          --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
-          -f $DOCKERFILE .
-    - name: Copy RPM Artifact
-      run: |
-        echo $RPM_ARTIFACT_DIR
-        mkdir -p $RPM_ARTIFACT_DIR
-        docker run -d --name test $IMAGE_TAG /usr/sbin/init
-        docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
+    # - name: Before scripts
+    #   run: |
+    #     apk add curl
+    #     docker rm $(docker stop test) || true
+    #     docker rmi $IMAGE_TAG || true
+    #     echo "y" | docker system prune
 
-    - name: Clean up
-      run: |
-        docker rm $(docker stop test)
-        docker rmi $IMAGE_TAG
-        cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
-        rm -rf $RPM_ARTIFACT_DIR/x86_64/
-        echo $ARTIFACT_PATH
+    # - name: Build RPM
+    #   run: |
+    #     curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
+    #     docker build -t $IMAGE_TAG \
+    #       --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
+    #       --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
+    #       --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
+    #       -f $DOCKERFILE .
+    # - name: Copy RPM Artifact
+    #   run: |
+    #     echo $RPM_ARTIFACT_DIR
+    #     mkdir -p $RPM_ARTIFACT_DIR
+    #     docker run -d --name test $IMAGE_TAG /usr/sbin/init
+    #     docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
 
-    - name: Upload RPM Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: $RPM_ARTIFACT_DIR
-        path: $ARTIFACT_PATH
+    # - name: Clean up
+    #   run: |
+    #     docker rm $(docker stop test)
+    #     docker rmi $IMAGE_TAG
+    #     cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
+    #     rm -rf $RPM_ARTIFACT_DIR/x86_64/
+    #     echo $ARTIFACT_PATH
+
+    # - name: Upload RPM Artifact
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: $RPM_ARTIFACT_DIR
+    #     path: $ARTIFACT_PATH
 
   # project_publish_rpm:
   #   runs-on: ubuntu-latest

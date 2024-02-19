@@ -13,7 +13,7 @@ env:
   PGSPIDER_RELEASE_VERSION: "4.0.0"
   PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
   RPM_DISTRIBUTION_TYPE: "rhel8"
-  PGSPIDER_RPM_ID: ""
+  PGSPIDER_RPM_ID: "11835"
 
 jobs:
   project_build_rpm:
@@ -120,33 +120,34 @@ jobs:
         eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-test-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
           $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-test-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
 
-  # project_publish_image:
-  #   runs-on: ubuntu-latest
+  project_publish_image:
+    needs: [project_build_rpm, project_publish_rpm]
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #   - name: Checkout Repository
-  #     uses: actions/checkout@v2
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-  #   - name: Set up Docker
-  #     uses: docker/setup-buildx-action@v1
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v1
 
-  #   - name: Login to Container Registry
-  #     run: echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - name: Login to Container Registry
+      run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
-  #   - name: Publish Docker Image
-  #     run: |
-  #       IMAGE_NAME="pgspider"
-  #       IMAGE_TAG="${GITHUB_RUN_ID}"
-  #       PGSPIDER_RPM_ID_POSTFIX=""
-  #       if [ $PGSPIDER_RPM_ID ]; then
-  #         PGSPIDER_RPM_ID_POSTFIX="-$PGSPIDER_RPM_ID"
-  #       else
-  #         PGSPIDER_RPM_ID_POSTFIX="-$CI_PIPELINE_ID"
-  #       fi
-  #       docker buildx build -t $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG \
-  #         --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
-  #         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
-  #         --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
-  #         --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} \
-  #         --push .
-  #       docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
+    - name: Publish Docker Image
+      run: |
+        IMAGE_NAME="pgspider"
+        IMAGE_TAG="${GITHUB_RUN_ID}"
+        PGSPIDER_RPM_ID_POSTFIX=""
+        if [ $PGSPIDER_RPM_ID ]; then
+          PGSPIDER_RPM_ID_POSTFIX="-$PGSPIDER_RPM_ID"
+        else
+          PGSPIDER_RPM_ID_POSTFIX="-$CI_PIPELINE_ID"
+        fi
+        docker buildx build -t $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG \
+          --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
+          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
+          --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
+          --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} \
+          --push .
+        docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG

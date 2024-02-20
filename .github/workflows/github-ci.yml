@@ -88,7 +88,7 @@ jobs:
       run: |
         echo "Publishing ....."
         assets_uri="https://uploads.github.com/repos/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/${{ env.PGSPIDER_RELEASE_ID }}/assets"
-        binary_dir="--data-binary \"${{ github.workspace }}\""
+        binary_dir="--data-binary \"@${{ github.workspace }}"
 
         curl_command="curl -L \
           -X POST \
@@ -98,27 +98,27 @@ jobs:
           -H \"Content-Type: application/octet-stream\" \
           --insecure"
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
         eval "$curl_command $assets_uri?name=pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm \
-          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm"
+          $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
 
   project_publish_image:
     needs: [project_build_rpm, project_publish_rpm]

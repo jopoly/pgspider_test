@@ -132,8 +132,7 @@ jobs:
       uses: docker/setup-buildx-action@v1
 
     - name: Login to Container Registry
-      # run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login docker.pkg.github.com -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-      run: echo "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" | docker login docker.pkg.github.com -u "jopoly" --password-stdin
+      run: echo "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" | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
 
     # - name: Publish Docker Image
     #   run: |

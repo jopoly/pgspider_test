@@ -90,10 +90,6 @@ jobs:
         assets_uri="https://uploads.github.com/repos/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/${{ env.PGSPIDER_RELEASE_ID }}/assets"
         binary_dir="--data-binary \"@${{ github.workspace }}\""
 
-        echo "DEBUG 1"
-        pwd
-        echo "DEBUG 2"
-        echo ${{ github.workspace }}
         echo "DEBUG 3"
         ls
 

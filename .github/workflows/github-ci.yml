@@ -88,12 +88,12 @@ jobs:
     - name: Publish RPM
       run: |
         echo "Publishing ....."
-        assets_uri="https://uploads.github.com/repos/${OWNER_GITHUB}/${PGSPIDER_PROJECT_GITHUB}/releases/${PGSPIDER_RELEASE_ID}/assets"
-        binary_dir="--data-binary \"@${RPM_ARTIFACT_DIR}\""
+        assets_uri="https://uploads.github.com/repos/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/${{ env.PGSPIDER_RELEASE_ID }}/assets"
+        binary_dir="--data-binary \"@${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}\""
         curl_command="curl -L \
           -X POST \
           -H \"Accept: application/vnd.github+json\" \
-          -H \"Authorization: Bearer ${ACCESS_TOKEN}\" \
+          -H \"Authorization: Bearer ${{ env.ACCESS_TOKEN }}\" \
           -H \"X-GitHub-Api-Version: 2022-11-28\" \
           -H \"Content-Type: application/octet-stream\" \
           --insecure"
@@ -120,37 +120,37 @@ jobs:
         eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-test-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
           $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-test-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
 
-  project_publish_image:
-    needs: [project_build_rpm, project_publish_rpm]
-    runs-on: ubuntu-latest
+  # project_publish_image:
+  #   needs: [project_build_rpm, project_publish_rpm]
+  #   runs-on: ubuntu-latest
 
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: "pgspider"
-      IMAGE_TAG: "${GITHUB_RUN_ID}"
-      PGSPIDER_RPM_ID_POSTFIX: ""
+  #   env:
+  #     REGISTRY: ghcr.io
+  #     IMAGE_NAME: "pgspider"
+  #     IMAGE_TAG: "${GITHUB_RUN_ID}"
+  #     PGSPIDER_RPM_ID_POSTFIX: ""
 
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+  #   steps:
+  #   - name: Checkout Repository
+  #     uses: actions/checkout@v2
 
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v1
+  #   - name: Set up Docker
+  #     uses: docker/setup-buildx-action@v1
 
-    - name: Login to Container Registry
-      run: echo "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" | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
+  #   - name: Login to Container Registry
+  #     run: echo "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" | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
 
-    - name: Publish Docker Image
-      run: |
-        if [ ${{ env.PGSPIDER_RPM_ID }} ]; then
-          PGSPIDER_RPM_ID_POSTFIX="-${{ env.PGSPIDER_RPM_ID }}"
-        else
-          PGSPIDER_RPM_ID_POSTFIX="-${GITHUB_RUN_ID}"
-        fi
-        docker buildx build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-          --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
-          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
-          --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
-          --build-arg PGSPIDER_RPM_ID=${{ env.PGSPIDER_RPM_ID_POSTFIX }} \
-          --push .
-        docker rmi ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+  #   - name: Publish Docker Image
+  #     run: |
+  #       if [ ${{ env.PGSPIDER_RPM_ID }} ]; then
+  #         PGSPIDER_RPM_ID_POSTFIX="-${{ env.PGSPIDER_RPM_ID }}"
+  #       else
+  #         PGSPIDER_RPM_ID_POSTFIX="-${GITHUB_RUN_ID}"
+  #       fi
+  #       docker buildx build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+  #         --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
+  #         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
+  #         --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
+  #         --build-arg PGSPIDER_RPM_ID=${{ env.PGSPIDER_RPM_ID_POSTFIX }} \
+  #         --push .
+  #       docker rmi ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}

@@ -89,12 +89,10 @@ jobs:
       run: |
         echo "Publishing ....."
         assets_uri="https://uploads.github.com/repos/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/${{ env.PGSPIDER_RELEASE_ID }}/assets"
-        binary_dir="--data-binary \"@${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}\""
+        binary_dir="--data-binary \"@${{ github.workspace }}\""
 
         echo "DEBUG 1"
-        ls
-        echo "DEBUG 2"
-        ls ${{ env.RPM_ARTIFACT_DIR }}
+        pwd
 
         curl_command="curl -L \
           -X POST \

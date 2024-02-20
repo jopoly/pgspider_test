@@ -6,7 +6,8 @@ ARG DISTRIBUTION_TYPE
 ARG PG_INS=/usr/pgsql-16
 
 ARG ACCESS_TOKEN
-ARG PGSPIDER_RPM_URL=https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/16/packages/generic/rpm_${DISTRIBUTION_TYPE}/${PGSPIDER_BASE_POSTGRESQL_VERSION}
+# ARG PGSPIDER_RPM_URL=https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/16/packages/generic/rpm_${DISTRIBUTION_TYPE}/${PGSPIDER_BASE_POSTGRESQL_VERSION}
+ARG PGSPIDER_RPM_URL
 ARG PGSPIDER_RPM_ID
 ARG proxy
 ARG no_proxy

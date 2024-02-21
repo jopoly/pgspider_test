@@ -281,8 +281,11 @@ jobs:
     - name: Set up Docker
       uses: docker/setup-buildx-action@v1
 
+    # - name: Login to Container Registry
+    #   run: echo "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" | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
+
     - name: Login to Container Registry
-      run: echo "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" | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
+      run: echo "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" | docker login ghcr.io -u "${{ env.OWNER_GITHUB }}" --password-stdin
 
     - name: Publish Docker Image
       run: |

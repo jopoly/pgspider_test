@@ -94,6 +94,10 @@ jobs:
       with:
         name: ${{ env.RPM_ARTIFACT_DIR }}
 
+    - name: Debug
+      run: |
+        ls
+
     # Upload rpm files to release that is created in previous step
     - name: Upload pgspider rpm
       uses: actions/upload-release-asset@v1

@@ -71,6 +71,7 @@ jobs:
   project_publish_rpm:
     # needs: project_build_rpm
     runs-on: ubuntu-latest
+    permissions: write-all
 
     steps:
     - name: Checkout Repository

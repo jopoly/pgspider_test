@@ -265,7 +265,7 @@ jobs:
     #       $binary_dir/pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm\""
 
   project_publish_image:
-    needs: [project_build_rpm, project_publish_rpm]
+    # needs: [project_build_rpm, project_publish_rpm]
     runs-on: ubuntu-latest
 
     env:

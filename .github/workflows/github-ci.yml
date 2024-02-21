@@ -1,7 +1,7 @@
 name: Create RPM Release
 
 on:
-  workflow_dispatch:
+  push:
     branches: test
 
 env:

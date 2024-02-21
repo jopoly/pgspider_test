@@ -28,12 +28,12 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
 
-    # - name: Before scripts
-    #   run: |
-    #     apk add curl
-    #     docker rm $(docker stop test) || true
-    #     docker rmi $IMAGE_TAG || true
-    #     echo "y" | docker system prune
+    - name: Before scripts
+      run: |
+        apk add curl
+        docker rm $(docker stop test) || true
+        docker rmi $IMAGE_TAG || true
+        echo "y" | docker system prune
 
     - name: Build RPM
       run: |

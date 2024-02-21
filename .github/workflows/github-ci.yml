@@ -270,7 +270,7 @@ jobs:
 
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: "pgspider"
+      IMAGE_NAME: "pgspider_test"
       IMAGE_TAG: "${GITHUB_RUN_ID}"
       PGSPIDER_RPM_ID_POSTFIX: ""
 

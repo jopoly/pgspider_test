@@ -307,7 +307,7 @@ jobs:
         else
           PGSPIDER_RPM_ID_POSTFIX="-${GITHUB_RUN_ID}"
         fi
-        docker buildx build -t ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+        docker build -t ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
           --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
           --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
           --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \

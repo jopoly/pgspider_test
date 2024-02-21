@@ -8,9 +8,9 @@ env:
   ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   OWNER_GITHUB: "jopoly"
   PGSPIDER_PROJECT_GITHUB: "pgspider_test"
-  PGSPIDER_RELEASE_ID: "4.1.0"
+  PGSPIDER_RELEASE_ID: "4.2.0"
   RPM_ARTIFACT_DIR: "fdw_rpm"
-  PGSPIDER_RELEASE_VERSION: "4.1.0"
+  PGSPIDER_RELEASE_VERSION: "4.2.0"
   PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
   RPM_DISTRIBUTION_TYPE: "rhel8"
   PGSPIDER_RPM_ID: ""
@@ -96,15 +96,136 @@ jobs:
       with:
         name: $RPM_ARTIFACT_DIR
 
-    - name: Upload Release Asset
-      id: upload-release-asset
+    # Upload pgspider rpm
+    - name: Upload pgspider rpm
+      id: upload-pgspider-rpm
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
         asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider contrib rpm
+    - name: Upload pgspider contrib rpm
+      id: upload-pgspider-contrib-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider debugsource rpm
+    - name: Upload pgspider debugsource rpm
+      id: upload-pgspider-debugsource-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider devel rpm
+    - name: Upload pgspider devel rpm
+      id: upload-pgspider-devel-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider docs rpm
+    - name: Upload pgspider docs rpm
+      id: upload-pgspider-docs-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider libs rpm
+    - name: Upload pgspider libs rpm
+      id: upload-pgspider-libs-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider llvmjit rpm
+    - name: Upload pgspider llvmjit rpm
+      id: upload-pgspider-llvmjit-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider plperl rpm
+    - name: Upload pgspider plperl rpm
+      id: upload-pgspider-plperl-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider pltcl rpm
+    - name: Upload pgspider pltcl rpm
+      id: upload-pgspider-pltcl-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider server rpm
+    - name: Upload pgspider server rpm
+      id: upload-pgspider-server-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
+
+    # Upload pgspider test rpm
+    - name: Upload pgspider test rpm
+      id: upload-pgspider-test-rpm
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
         asset_content_type: application/octet-stream
 
     # - name: Publish RPM

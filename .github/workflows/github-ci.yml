@@ -285,7 +285,7 @@ jobs:
     #   run: echo "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 " | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
 
     - name: Login to Container Registry
-      run: echo "Sonnguyen@2511" | docker login ghcr.io -u "${{ env.OWNER_GITHUB }}" --password-stdin
+      run: echo "Sonnguyen@2511" | docker login ghcr.io -u "sonnn2511@gmail.com" --password-stdin
 
     - name: Publish Docker Image
       run: |

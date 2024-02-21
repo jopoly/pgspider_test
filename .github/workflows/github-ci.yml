@@ -284,6 +284,22 @@ jobs:
     - name: Login to Container Registry
       run: echo "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" | docker login docker.pkg.github.com -u "${{ env.OWNER_GITHUB }}" --password-stdin
 
+    # - name: Publish Docker Image
+    #   run: |
+    #     if [ ${{ env.PGSPIDER_RPM_ID }} ]; then
+    #       PGSPIDER_RPM_ID_POSTFIX="-${{ env.PGSPIDER_RPM_ID }}"
+    #     else
+    #       PGSPIDER_RPM_ID_POSTFIX="-${GITHUB_RUN_ID}"
+    #     fi
+    #     docker buildx build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+    #       --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
+    #       --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
+    #       --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
+    #       --build-arg PGSPIDER_RPM_ID=${{ env.PGSPIDER_RPM_ID_POSTFIX }} \
+    #       --build-arg PGSPIDER_RPM_URL="https://github.com/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/download/${{ env.PGSPIDER_RELEASE_VERSION }}" \
+    #       --push .
+    #     docker rmi ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
     - name: Publish Docker Image
       run: |
         if [ ${{ env.PGSPIDER_RPM_ID }} ]; then
@@ -291,11 +307,13 @@ jobs:
         else
           PGSPIDER_RPM_ID_POSTFIX="-${GITHUB_RUN_ID}"
         fi
-        docker buildx build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+        docker buildx build -t ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
           --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
           --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
           --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
           --build-arg PGSPIDER_RPM_ID=${{ env.PGSPIDER_RPM_ID_POSTFIX }} \
           --build-arg PGSPIDER_RPM_URL="https://github.com/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/download/${{ env.PGSPIDER_RELEASE_VERSION }}" \
-          --push .
+
+        docker push ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
         docker rmi ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}

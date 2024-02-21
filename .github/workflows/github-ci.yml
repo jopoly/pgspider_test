@@ -266,6 +266,7 @@ jobs:
 
   project_publish_image:
     # needs: [project_build_rpm, project_publish_rpm]
+    permissions: write-all
     runs-on: ubuntu-latest
 
     env:

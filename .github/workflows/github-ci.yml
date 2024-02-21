@@ -16,60 +16,60 @@ env:
   PGSPIDER_RPM_ID: ""
 
 jobs:
-  # project_build_rpm:
-  #   runs-on: ubuntu-latest
-  #   container:
-  #     image: docker:24.0.5
-  #     volumes:
-  #       - /var/run/docker.sock:/var/run/docker.sock
-  #   env:
-  #     IMAGE_TAG: "pgspider_create_rpm"
-  #     DOCKERFILE: "Dockerfile_rpm"
-  #     PGSPIDER_PROJECT_GITHUB: ${PGSPIDER_PROJECT_GITHUB}
-  #     PGSPIDER_RELEASE_ID: ${PGSPIDER_RELEASE_ID}
-  #     PGSPIDER_RPM_ID_POSTFIX: ""
-  #     CI_PIPELINE_ID: ${GITHUB_RUN_ID}
+  project_build_rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: docker:24.0.5
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      IMAGE_TAG: "pgspider_create_rpm"
+      DOCKERFILE: "Dockerfile_rpm"
+      PGSPIDER_PROJECT_GITHUB: ${PGSPIDER_PROJECT_GITHUB}
+      PGSPIDER_RELEASE_ID: ${PGSPIDER_RELEASE_ID}
+      PGSPIDER_RPM_ID_POSTFIX: ""
+      CI_PIPELINE_ID: ${GITHUB_RUN_ID}
 
-  #   steps:
-  #   - name: Checkout Repository
-  #     uses: actions/checkout@v2
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-  #   - name: Before scripts
-  #     run: |
-  #       apk add curl
-  #       docker rm $(docker stop test) || true
-  #       docker rmi $IMAGE_TAG || true
-  #       echo "y" | docker system prune
+    - name: Before scripts
+      run: |
+        apk add curl
+        docker rm $(docker stop test) || true
+        docker rmi $IMAGE_TAG || true
+        echo "y" | docker system prune
 
-  #   - name: Build RPM
-  #     run: |
-  #       curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
-  #       docker build -t $IMAGE_TAG \
-  #         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
-  #         --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
-  #         --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
-  #         -f $DOCKERFILE .
-  #   - name: Copy RPM Artifact
-  #     run: |
-  #       mkdir -p $RPM_ARTIFACT_DIR
-  #       docker run -d --name test $IMAGE_TAG /usr/sbin/init
-  #       docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
+    - name: Build RPM
+      run: |
+        curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
+        docker build -t $IMAGE_TAG \
+          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
+          --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
+          --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
+          -f $DOCKERFILE .
+    - name: Copy RPM Artifact
+      run: |
+        mkdir -p $RPM_ARTIFACT_DIR
+        docker run -d --name test $IMAGE_TAG /usr/sbin/init
+        docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
 
-  #   - name: Clean up
-  #     run: |
-  #       docker rm $(docker stop test)
-  #       docker rmi $IMAGE_TAG
-  #       cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
-  #       rm -rf $RPM_ARTIFACT_DIR/x86_64/
+    - name: Clean up
+      run: |
+        docker rm $(docker stop test)
+        docker rmi $IMAGE_TAG
+        cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
+        rm -rf $RPM_ARTIFACT_DIR/x86_64/
 
-  #   - name: Upload RPM Artifact
-  #     uses: actions/upload-artifact@v2
-  #     with:
-  #       name: $RPM_ARTIFACT_DIR
-  #       path: '${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}'
+    - name: Upload RPM Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: $RPM_ARTIFACT_DIR
+        path: '${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}'
 
   project_publish_rpm:
-    # needs: project_build_rpm
+    needs: project_build_rpm
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -79,11 +79,6 @@ jobs:
 
     - name: Install curl
       run: sudo apt-get update -qq && sudo apt-get install -y -qq curl
-
-    # - name: Download RPM Artifact
-    #   uses: actions/download-artifact@v2
-    #   with:
-    #     name: $RPM_ARTIFACT_DIR
 
     - name: Create Release
       id: create_release
@@ -96,21 +91,21 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Debug
-      run: |
-        echo "Print steps.create_release.outputs.upload_url"
-        echo ${{ steps.create_release.outputs.upload_url }}
+    - name: Download RPM Artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: $RPM_ARTIFACT_DIR
 
-    # - name: Upload Release Asset
-    #   id: upload-release-asset
-    #   uses: actions/upload-release-asset@v1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-    #     asset_path: ./temp.txt
-    #     asset_name: temp.txt
-    #     asset_content_type: application/zip
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_content_type: application/octet-stream
 
     # - name: Publish RPM
     #   run: |

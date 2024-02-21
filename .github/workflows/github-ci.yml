@@ -291,7 +291,7 @@ jobs:
         else
           PGSPIDER_RPM_ID_POSTFIX="-${GITHUB_RUN_ID}"
         fi
-        docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+        docker build -t ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
           --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
           --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
           --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
@@ -299,6 +299,6 @@ jobs:
           --build-arg PGSPIDER_RPM_URL="https://github.com/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/download/${{ env.PGSPIDER_RELEASE_VERSION }}" \
           .
 
-        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        docker push ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-        docker rmi ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        docker rmi ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}

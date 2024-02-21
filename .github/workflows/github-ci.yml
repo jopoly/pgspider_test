@@ -50,12 +50,10 @@ jobs:
         docker run -d --name test $IMAGE_TAG /usr/sbin/init
         docker cp test:/home/user1/rpmbuild/RPMS/x86_64 $RPM_ARTIFACT_DIR
 
-    # - name: Clean up
-    #   run: |
-    #     docker rm $(docker stop test)
-    #     docker rmi $IMAGE_TAG
-    #     cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
-    #     rm -rf $RPM_ARTIFACT_DIR/x86_64/
+    - name: Clean up
+      run: |
+        cp $RPM_ARTIFACT_DIR/x86_64/* $RPM_ARTIFACT_DIR
+        rm -rf $RPM_ARTIFACT_DIR/x86_64/
 
     - name: Upload RPM Artifact
       uses: actions/upload-artifact@v2

@@ -60,7 +60,7 @@ jobs:
     - name: Upload RPM Artifact
       uses: actions/upload-artifact@v2
       with:
-        name: $RPM_ARTIFACT_DIR
+        name: ${{ env.RPM_ARTIFACT_DIR }}
         path: '${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}'
 
   # Job 2: Create release, publish source code and rpm files
@@ -239,4 +239,3 @@ jobs:
           --build-arg PGSPIDER_RPM_URL="https://github.com/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/download/${{ env.PGSPIDER_RELEASE_VERSION }}" \
           .
         docker push ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-        docker rmi ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}

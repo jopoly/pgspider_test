@@ -1,8 +1,7 @@
 name: Create RPM Release
 
 on:
-  push:
-    branches: test
+  workflow_dispatch:
 
 env:
   OWNER_GITHUB: "jopoly"
@@ -70,9 +69,6 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v2
-
-    # - name: Install curl
-    #   run: sudo apt-get update -qq && sudo apt-get install -y -qq curl
 
     # Create release. After this step, source code is published.
     - name: Create Release

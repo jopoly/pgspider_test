@@ -21,4 +21,4 @@ docker build -t ${IMAGE_NAME_OPTIMIZED} \
         --build-arg ARROW_ACCESS_TOKEN=${ARROW_ACCESS_TOKEN} \
         --build-arg PARQUET_S3_FDW_URL_PACKAGE=${PARQUET_S3_FDW_URL_PACKAGE} \
         --build-arg PARQUET_S3_FDW_ACCESS_TOKEN=${PARQUET_S3_FDW_ACCESS_TOKEN} \
-        -f ${DOCKERFILE_OPTIMIZED} .
+        -f docker/${DOCKERFILE_OPTIMIZED} .

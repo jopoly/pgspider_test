@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source ./env_rpm_optimize_image.conf
+source docker/env_rpm_optimize_image.conf
 
 set -eE
 
@@ -16,7 +16,7 @@ docker build -t $IMAGE_NAME_RPM \
         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${PGSPIDER_BASE_POSTGRESQL_VERSION} \
         --build-arg PGSPIDER_RELEASE_VERSION=${PGSPIDER_RELEASE_VERSION} \
         --build-arg DISTRIBUTION_TYPE=${RPM_DISTRIBUTION_TYPE} \
-        -f $DOCKERFILE_RPM .
+        -f docker/$DOCKERFILE_RPM .
 
 # Get RPM file from container image.
 rm -rf $RPM_ARTIFACT_DIR || true
@@ -74,6 +74,8 @@ else
                             -H \"Authorization: Bearer ${ACCESS_TOKEN}\" \
                             -H \"X-GitHub-Api-Version: 2022-11-28\" \
                             -H \"Content-Type: application/octet-stream\" \
+                            --retry 20 \
+                            --retry-max-time 120 \
                             --insecure"
     assets_uri="https://uploads.github.com/repos/${OWNER_GITHUB}/${PGSPIDER_PROJECT_GITHUB}/releases/${PGSPIDER_RELEASE_ID}/assets"
     binary_dir="--data-binary \"@${RPM_ARTIFACT_DIR}\""
@@ -100,7 +102,7 @@ else
     eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-llvmjit-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
                         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-llvmjit-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
     # plperl
-    eval "$curl_command $assets_uri?name=name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+    eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
                         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
     # pltcl
     eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-pltcl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \

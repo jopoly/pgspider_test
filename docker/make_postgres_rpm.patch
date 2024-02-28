@@ -1,5 +1,5 @@
---- env_rpm_optimize_image.conf.old	2024-02-07 18:11:22.996363162 +0700
-+++ env_rpm_optimize_image.conf	2024-02-07 18:04:24.558333612 +0700
+--- docker/env_rpm_optimize_image.conf.old	2024-02-07 18:11:22.996363162 +0700
++++ docker/env_rpm_optimize_image.conf	2024-02-07 18:04:24.558333612 +0700
 @@ -16,7 +16,7 @@
  PASSWORD_PGS_CONTAINER_REGISTRY=
  
@@ -9,8 +9,8 @@
  RPM_DISTRIBUTION_TYPE="rhel8"
  
  ACCESS_TOKEN=
---- create_rpm_binary.sh.old	2024-02-07 18:12:46.810369081 +0700
-+++ create_rpm_binary.sh	2024-02-07 17:59:04.791311030 +0700
+--- docker/create_rpm_binary.sh.old	2024-02-07 18:12:46.810369081 +0700
++++ docker/create_rpm_binary.sh	2024-02-07 17:59:04.791311030 +0700
 @@ -9,7 +9,12 @@
      wget https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf
  fi
@@ -34,8 +34,8 @@
  rm -f $RPM_ARTIFACT_DIR/*-debuginfo-*.rpm
  
  # # Push rpm binary to registry
---- Dockerfile_rpm.old	2024-02-07 18:12:31.617368008 +0700
-+++ Dockerfile_rpm	2024-02-07 17:38:56.093225672 +0700
+--- docker/Dockerfile_rpm.old	2024-02-07 18:12:31.617368008 +0700
++++ docker/Dockerfile_rpm	2024-02-07 17:38:56.093225672 +0700
 @@ -35,18 +35,11 @@
  RUN echo "user1:user1" | chpasswd
  RUN echo "user1 ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers

@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
 
 env:
-  OWNER_GITHUB: "jopoly"
-  PGSPIDER_PROJECT_GITHUB: "pgspider_test"
-  RPM_ARTIFACT_DIR: "fdw_rpm"
-  PGSPIDER_RELEASE_VERSION: "4.2.0"
-  PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
-  RPM_DISTRIBUTION_TYPE: "rhel8"
+  OWNER_GITHUB: "jopoly"                      # User name. For example: [user_name] in https://github.com/user_name/your_repository.git
+  PGSPIDER_PROJECT_GITHUB: "pgspider_test"     # Repository name. For example: [your_repository] in https://github.com/user_name/your_repository.git
+  RPM_ARTIFACT_DIR: "fdw_rpm"                    # Directory name of Artifact to contain rpm files temporary. Default is "fdw_rpm".
+  PGSPIDER_RELEASE_VERSION: "4.0.0"              # Release version. For example: 4.1.0.
+  PGSPIDER_BASE_POSTGRESQL_VERSION: "16"         # Main version of postgresql that pgspider based on it. For example: 16.
+  RPM_DISTRIBUTION_TYPE: "rhel8"                 # The distribution operating system name. Default is "rhel8".
 
 jobs:
   # Job 1: Build rpm files and upload them to Artifact
@@ -30,18 +30,15 @@ jobs:
     - name: Before scripts
       run: |
         apk add curl
-        docker rm $(docker stop test) || true
-        docker rmi $IMAGE_TAG || true
-        echo "y" | docker system prune
 
     - name: Build RPM
       run: |
         curl -O https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf --insecure
         docker build -t $IMAGE_TAG \
-          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION \
-          --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION \
-          --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE \
-          -f $DOCKERFILE .
+          --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
+          --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
+          --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
+          -f docker/$DOCKERFILE .
 
     - name: Copy RPM Artifact
       run: |
@@ -231,5 +228,5 @@ jobs:
           --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
           --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
           --build-arg PGSPIDER_RPM_URL="https://github.com/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/download/${{ env.PGSPIDER_RELEASE_VERSION }}" \
-          .
+          -f docker/Dockerfile .
         docker push ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}

@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Before scripts
       run: |
@@ -52,7 +52,7 @@ jobs:
         rm -rf ${{ env.RPM_ARTIFACT_DIR}}/x86_64/
 
     - name: Upload RPM Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.RPM_ARTIFACT_DIR }}
         path: '${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}'
@@ -65,7 +65,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     # Create release. After this step, source code is published.
     - name: Create Release
@@ -81,7 +81,7 @@ jobs:
 
     # Download rpm files from Artifact
     - name: Download RPM Artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ env.RPM_ARTIFACT_DIR }}
 
@@ -209,7 +209,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Docker
       uses: docker/setup-buildx-action@v1

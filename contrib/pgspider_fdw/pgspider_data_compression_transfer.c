@@ -45,6 +45,8 @@ static DataSource dtSources[] = {
 	{ NULL,                 -1,           NULL,                           NULL}
 };
 
+pthread_mutex_t host_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /*
  * init_InsertData
  *		Initialize InsertData context
@@ -109,6 +111,7 @@ pgspiderGetLocalIp(void)
     struct hostent *host_entry;
     int             hostname;
 
+    SPD_LOCK_TRY(&host_mutex);
     /* Get host name */
     hostname = gethostname(hostbuffer, sizeof(hostbuffer));
     if (hostname == -1)
@@ -120,10 +123,11 @@ pgspiderGetLocalIp(void)
         elog(ERROR, "pgspider_fdw: Failed to get host information");
 
     /* Convert Internet network address into ASCII string */
-    hostIP = inet_ntoa(*((struct in_addr *)
-                         host_entry->h_addr_list[0]));
+    hostIP = pstrdup(inet_ntoa(*((struct in_addr *)
+                         host_entry->h_addr_list[0])));
 
-    return pstrdup(hostIP);
+    SPD_UNLOCK_CATCH(&host_mutex);
+    return hostIP;
 }
 
 /*
@@ -133,23 +137,28 @@ pgspiderGetLocalIp(void)
 static char *
 pgspiderGetHostIp(const char *public_host) 
 {
-    char           hostIP[INET_ADDRSTRLEN];
-    struct hostent *host_entry;
+	char			hostIP[INET_ADDRSTRLEN];
+	struct hostent *host_entry;
+	char		   *ret;
 
-    /* Get host information */
-    host_entry = gethostbyname(public_host);
-    if (host_entry == NULL)
-        elog(ERROR, "pgspider_fdw: Failed to get host information");
+	SPD_LOCK_TRY(&host_mutex);
+	/* Get host information */
+	host_entry = gethostbyname(public_host);
+	if (host_entry == NULL)
+		elog(ERROR, "pgspider_fdw: Failed to get host information");
 
-    /* Convert Internet network address into ASCII string */
-    if (!inet_ntop(AF_INET, ((struct in_addr *)
-                         host_entry->h_addr_list[0]), hostIP, INET_ADDRSTRLEN))
-    {
-        char *error = strerror(errno);
-        elog(ERROR,"pgspider_fdw: public_host error. %s", error);
-    }
+	/* Convert Internet network address into ASCII string */
+	if (!inet_ntop(AF_INET, ((struct in_addr *)
+					host_entry->h_addr_list[0]), hostIP, INET_ADDRSTRLEN))
+	{
+		char *error = strerror(errno);
+		elog(ERROR,"pgspider_fdw: public_host error. %s", error);
+	}
 
-    return pstrdup(hostIP);
+	ret = pstrdup(hostIP);
+	SPD_UNLOCK_CATCH(&host_mutex);
+
+	return ret;
 }
 
 /*

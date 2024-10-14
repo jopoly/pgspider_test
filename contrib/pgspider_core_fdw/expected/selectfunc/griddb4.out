@@ -3887,7 +3887,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152009
-  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=17)
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=172.17.0.3:10001, partition=17)
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
 }
 --
@@ -7109,7 +7109,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=17)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=172.17.0.3:10001, partition=17)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
 }
 --if the first parameter is not set, * will be added as the first parameter.

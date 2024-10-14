@@ -369,9 +369,9 @@ foreign_expr_walker(Node *node,
 					if (strcmp(funcname, "string_agg") == 0)
 					{
 						TargetEntry *tle = (TargetEntry *) lsecond(aggref->args);
-						Node	   *node = (Node *) tle->expr;
+						Node	   *expr = (Node *) tle->expr;
 
-						if (!IsA(node, Const))
+						if (!IsA(expr, Const))
 							return false;
 					}
 				}

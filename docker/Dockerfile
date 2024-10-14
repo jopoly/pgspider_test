@@ -2,8 +2,7 @@ FROM rockylinux:8.8
 
 ARG PGSPIDER_BASE_POSTGRESQL_VERSION
 ARG PGSPIDER_RELEASE_VERSION
-ARG DISTRIBUTION_TYPE
-ARG PG_INS=/usr/pgsql-16
+ARG PACKAGE_RELEASE_VERSION
 
 ARG ACCESS_TOKEN
 ARG PGSPIDER_RPM_URL
@@ -20,13 +19,13 @@ LABEL name="PGSpider" \
 ENV http_proxy ${proxy}
 ENV https_proxy ${proxy}
 ENV no_proxy ${no_proxy}
+ENV PGSPIDER_BASE_POSTGRESQL_VERSION ${PGSPIDER_BASE_POSTGRESQL_VERSION}
 
 # Add postgres repository for pgdg-srpm-macros
 RUN dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-
-RUN dnf install -y wget pgdg-srpm-macros
-RUN dnf --enablerepo=powertools install -y perl-IPC-Run sudo
-RUN dnf --enablerepo=devel install -y snappy-devel
+RUN dnf install -y wget pgdg-srpm-macros \
+    && dnf --enablerepo=powertools install -y perl-IPC-Run sudo \
+    && dnf --enablerepo=devel install -y snappy-devel wget
 
 # Create pgspider user
 # User on host will mapped to this user.
@@ -35,64 +34,44 @@ RUN echo "pgspider:pgspider" | chpasswd
 RUN usermod -aG wheel pgspider
 RUN echo "pgspider ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
-# Install PGSpider
 RUN if [[ -z ${ACCESS_TOKEN} ]]; then \
-        wget -O /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm --no-check-certificate ; \
+        export PARAM_CURL_OPTS='--insecure' ; \
     else \
-        curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        --insecure ; \
-    fi
-RUN if [[ -z ${ACCESS_TOKEN} ]]; then \ 
-        wget -O /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm --no-check-certificate ; \
-    else \
-        curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        --insecure ; \
-    fi
+        export PARAM_CURL_OPTS='--header "PRIVATE-TOKEN: '${ACCESS_TOKEN}'" --insecure' ; \
+    fi && \
+    echo "PARAM_CURL_OPTS='${PARAM_CURL_OPTS}'" > /tmp/params.txt
 
-RUN if [[ -z ${ACCESS_TOKEN} ]]; then \ 
-        wget -O /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm --no-check-certificate ; \
-    else \
-        curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        --insecure ; \
-    fi
+# Download PGSpider libraries
+RUN . /tmp/params.txt && \
+    eval curl ${PARAM_CURL_OPTS} \
+        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64${PGSPIDER_RPM_ID}.rpm \
+        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm
 
-RUN if [[ -z ${ACCESS_TOKEN} ]]; then \ 
-        wget -O /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm --no-check-certificate ; \
-    else \
-        curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        --insecure ; \
-    fi
+# Download PGSpider core
+RUN . /tmp/params.txt && \
+    eval curl ${PARAM_CURL_OPTS} \
+    ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64${PGSPIDER_RPM_ID}.rpm \
+    -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm
 
-RUN if [[ -z ${ACCESS_TOKEN} ]]; then \ 
-        wget -O /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm --no-check-certificate ; \
-    else \
-        curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        --insecure ; \
-    fi
+# Download PGSpider server
+RUN . /tmp/params.txt && \
+    eval curl ${PARAM_CURL_OPTS} \
+        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64${PGSPIDER_RPM_ID}.rpm \
+        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm
 
+# Download PGSpider contrib
+RUN . /tmp/params.txt && \
+    eval curl ${PARAM_CURL_OPTS} \
+        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64${PGSPIDER_RPM_ID}.rpm \
+        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm
+
+# Install PGSpider
 RUN dnf -y localinstall \
     --setopt=skip_missing_names_on_install=False \
-    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm
-
+    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm \
+    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm \
+    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm \
+    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm
 
 RUN mkdir -p /var/run/postgresql && chown -R pgspider:pgspider /var/run/postgresql && chmod 3777 /var/run/postgresql
 

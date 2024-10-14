@@ -1,7 +1,7 @@
 #!/bin/sh
 # run setup script
 cd init
-./ported_postgres_setup.sh --start
+./setup_ported_postgres.sh --start
 cd ..
 
 sed -i 's/REGRESS =.*/REGRESS = ported_postgres_fdw /' Makefile

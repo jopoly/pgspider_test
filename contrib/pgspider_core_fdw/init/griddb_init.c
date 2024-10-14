@@ -517,8 +517,7 @@ void select_func_test(GSGridStore *store)
  * Connect to GridDB cluster and insert data to the database
  * Arguments: IP address, port, cluster name, username, password
  */
-int griddb_preparation (const char *addr,
-                        const char *port,
+int griddb_preparation (const char *notification_member,
                         const char *cluster_name,
                         const char *user,
                         const char *passwd,
@@ -534,8 +533,7 @@ int griddb_preparation (const char *addr,
   int count;
   int32_t id;
   const GSPropertyEntry props[] = {
-      {"notificationAddress", addr},
-      {"notificationPort", port},
+      {"notificationMember", notification_member},
       {"clusterName", cluster_name},
       {"user", user},
       {"password", passwd}};
@@ -557,5 +555,5 @@ int griddb_preparation (const char *addr,
 /* Main funtion */
 void main(int argc, char *argv[])
 {
-  griddb_preparation(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+  griddb_preparation(argv[1], argv[2], argv[3], argv[4], argv[5]);
 }

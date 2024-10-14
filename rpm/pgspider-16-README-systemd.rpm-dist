@@ -1,13 +1,13 @@
 README.rpm-dist
 -----------------------------------------------------------------------------
-Version 16, for the PostgreSQL 16 RPM set.
+Version 16, for the PGSpider 16 RPM set.
 Devrim Gündüz <devrim@gunduz.org>
 -----------------------------------------------------------------------------
 
 Contents:
  1.)	Introduction and QuickStart
  2.)	Upgrading an installation
- 3.)	PostgreSQL RPM packages and rationale
+ 3.)	PGSpider RPM packages and rationale
  4.)	Starting multiple postmasters
  5.)	Regression Testing
  6.)	Starting postmaster automatically on startup
@@ -19,20 +19,13 @@ Contents:
 
 INTRODUCTION
 -----------------------------------------------------------------------------
-This document exists to explain the layout of the RPMs for PostgreSQL, to 
+This document exists to explain the layout of the RPMs for PGSpider, to
 describe various RPM specifics, and to document special features found
 in the RPMset.
 
-This document is written to be applicable to version 16 of PostgreSQL,
+This document is written to be applicable to version 16 of PGSpider,
 which is the current version of the RPMs as of this writing. More to the 
 point, versions prior to 16 are not documented here.
-
-Official PostgreSQL Global Development Group RPMs carry a 'PGDG after the
-release number.  Other RPMsets as distributed with Linux distributions may
-have a different release number and initials.
-
-If you want to stay up-to-date on the PostgreSQL core itself, you may
-want to use PGDG set, instead of the binaries supplied by distribution.
 
 These RPMs do not support any sort of major version upgrading process
 other than that documented in the regular documentation.  That is, you
@@ -40,20 +33,20 @@ must dump, upgrade, initdb, and restore your data if you are
 performing a major version update. This is not needed for minor version
 updates.
 
-QUICKSTART (note that this requires postgresql16-server installed)
+QUICKSTART (note that this requires pgspider16-server installed)
 -----------------------------------------------------------------------------
 For a fresh installation, you will need to initialize the cluster first. Run:
 
-	postgresql-16-setup initdb
+	pgspider-16-setup initdb
 
 as root, and it will prepare a new database cluster for you. Then you will 
-need to start PostgreSQL. Again as root, run:
+need to start PGSpider. Again as root, run:
 
-	systemctl start postgresql-16.service
+	systemctl start pgspider-16.service
 
 You will probably also want to do
 
-	systemctl enable postgresql-16.service
+	systemctl enable pgspider-16.service
 
 so that the postmaster is automatically started during future reboots.
 
@@ -67,13 +60,13 @@ setting of environment variables. Users should not edit this file, because
 it may be overwritten during every new installation. However, you can create
 ~/.pgsql_profile file, and add your customizations there.
 
-The user 'postgres' is created during installation of the server subpackage.
+The user 'pgspider' is created during installation of the server subpackage.
 This user by default is UID and GID 26. The user has the default shell set to
 bash, and the home directory set to /var/lib/pgsql.  This user also has no
 default password.  If you want to be able to su to it from a non-root account
-or login as 'postgres' you will need to set a password using passwd.
+or login as 'pgspider' you will need to set a password using passwd.
 
-In the default installation, only postgres user is allowed to access to 
+In the default installation, only pgspider user is allowed to access to 
 the database server, because initdb in the RPMs pick up "peer" auth 
 method in the RPMs. 
 
@@ -106,7 +99,7 @@ UPGRADING AN INSTALLATION
 -----------------------------------------------------------------------------
 For a minor-version upgrade (such as 16.1 to 16.2), just install the
 new RPMs; there's usually nothing more to it than that (installing new minor
-version will restart database).  Upgrading across a major release of PostgreSQL
+version will restart database).  Upgrading across a major release of PGSpider
 (for example, from 12.x to 16.x) requires more effort.
 
 If you are performing major version upgrade (for example, from 13.x to 16.x),
@@ -126,46 +119,46 @@ there are two solutions:
 RPMs also support in-place upgrade from the immediately previous major release.
 Currently, you can upgrade in-place from 15.x to 16.x.  Just run:
 
-$ /usr/pgsql-16/bin/postgresql-16-setup upgrade
+$ /usr/pgsql-16/bin/pgspider-16-setup upgrade
 
 Please note that 15 and 16 contrib RPMs need to be installed for this feature
 to work. You can also upgrade from other major versions either by editing the
-setup script, or passing PostgreSQL major version as the 3rd argument to the
+setup script, or passing PGSpider major version as the 3rd argument to the
 setup script.
 
-POSTGRESQL RPM PACKAGES AND RATIONALE.
+PGSPIDER RPM PACKAGES AND RATIONALE.
 -----------------------------------------------------------------------------
-PostgreSQL is split up into multiple packages so that users can 'pick and
+PGSpider is split up into multiple packages so that users can 'pick and
 choose' what pieces are needed, and what dependencies are required.
 
 The RPMset is packaged in the following subpackages:
 
-postgresql16:		Key clients and libraries, and documentation
-postgresql16-contrib:	The contrib modules (extensions) included in PostgreSQL
-postgresql16-devel:	Development libraries and include files
-postgresql16-docs:	Documentation, including PDF file
-postgresql16-libs:	Client shared libraries
-postgresql16-llvmjit:	Just-in-time compilation support
-postgresql16-test:	The regression tests and associated files
-postgresql16-plperl:	The Perl procedural language for PostgreSQL
-postgresql16-plpython:	The Python procedural language for PostgreSQL
-postgresql16-pltcl:	The Tcl procedural language for PostgreSQL
-postgresql16-test:	The test suite distributed with PostgreSQL
-postgresql16-server:	Server executables and data files
+pgspider16:		Key clients and libraries, and documentation
+pgspider16-contrib:	The contrib modules (extensions) included in PGSpider
+pgspider16-devel:	Development libraries and include files
+pgspider16-docs:	Documentation, including PDF file
+pgspider16-libs:	Client shared libraries
+pgspider16-llvmjit:	Just-in-time compilation support
+pgspider16-test:	The regression tests and associated files
+pgspider16-plperl:	The Perl procedural language for PGSpider
+pgspider16-plpython:	The Python procedural language for PGSpider
+pgspider16-pltcl:	The Tcl procedural language for PGSpider
+pgspider16-test:	The test suite distributed with PGSpider
+pgspider16-server:	Server executables and data files
 
-postgresql-jdbc (version independent) and postgresql16-odbc are seperate (s)rpms.
+pgspider-jdbc (version independent) and pgspider16-odbc are seperate (s)rpms.
 
-You have to install postgresql16 and postgresql16-libs to do anything.
-postgresql16-server is needed unless you only plan to use the clients to work
-with a remote PostgreSQL server. The others are optional.
+You have to install pgspider16 and pgspider16-libs to do anything.
+pgspider16-server is needed unless you only plan to use the clients to work
+with a remote PGSpider server. The others are optional.
 
-Pgtcl is distributed via postgresql16-tcl package.
+Pgtcl is distributed via pgspider16-tcl package.
 
 RPM FILE LOCATIONS.
 -----------------------------------------------------------------------------
-To be in compliance with the Linux FHS, the PostgreSQL RPMs install files in
-a manner not consistent with most of the PostgreSQL documentation.  According
-to the standard PostgreSQL documentation, PostgreSQL is installed under the
+To be in compliance with the Linux FHS, the PGSpider RPMs install files in
+a manner not consistent with most of the PGSpider documentation.  According
+to the standard PGSpider documentation, PGSpider is installed under the
 directory /usr/local/pgsql, with executables, source, and data existing in
 various subdirectories.
 
@@ -196,13 +189,12 @@ the beauty of RPM -- you don't have to keep track of the files, RPM does it
 for you.
 
 These RPMs are designed to be LSB-compliant -- if you find this not to be the
-case, please let us know by way of the pgsql-pkg-yum@postgresql.org
-mailing list.
+case, please let us know by way of the https://github.com/pgspider/pgspider.
 
 -------------------------------------------------------------------------------
-MULTIPLE POSTMASTERS (For the same PostgreSQL version)
+MULTIPLE POSTMASTERS (For the same PGSpider version)
 -------------------------------------------------------------------------------
-The postgresql-server RPM contains a 'unit file' that is used to start the
+The pgspider-server RPM contains a 'unit file' that is used to start the
 postmaster.  The current version of this script has logic to be able to start
 multiple postmasters, with different data areas, listening on different ports,
 etc.  To use this functionality requires root access.
@@ -213,46 +205,45 @@ Here are the steps:
 	You can give any name in here. To distinguish the cluster, you can
 	add the service name or port value to the unit file name:
 
-	cp /lib/systemd/system/postgresql-16.service /etc/systemd/system/postgresql-16-secondary.service 
+	cp /lib/systemd/system/pgspider-16.service /etc/systemd/system/pgspider-16-secondary.service 
 
 2.)	Edit this file, and change PGDATA. Please note that you can give
-	any directory name in here that postgres can access. You don't
+	any directory name in here that pgspider can access. You don't
 	have to create this directory now, it will be created in the next step:
 
 	Environment=PGDATA=/var/lib/pgsql/16/data-secondary
 
 3.)     Initialize the cluster:
 
-	/usr/pgsql-16/bin/postgresql-16-setup initdb postgresql-16-secondary
+	/usr/pgsql-16/bin/pgspider-16-setup initdb pgspider-16-secondary
 
 4.)     Edit postgresql.conf to change the port, address, tcpip settings, etc.
 
-5.)     Start the postmaster with 'systemctl start postgresql-16-secondary.service'
+5.)     Start the postmaster with 'systemctl start pgspider-16-secondary.service'
 
 When doing a major-version upgrade of a secondary postmaster, mention the
-service name in the postgresql-16-setup command, for example 'postgresql-16-setup
-upgrade secondary'.  This will let postgresql-16-setup find the correct data
+service name in the pgspider-16-setup command, for example 'pgspider-16-setup
+upgrade secondary'.  This will let pgspider-16-setup find the correct data
 directory from the service file.
 
 REGRESSION TESTING
 -------------------------------------------------------------------------------
-If you install the postgresql16-test RPM then you can run the PostgreSQL
+If you install the pgspider16-test RPM then you can run the PGSpider
 regression tests.  These tests stress your database installation and produce
 results that give you assurances that the installation is complete, and that
 your database machine is up to the task.
 
 To run the regression tests under the RPM installation, make sure that the
 postmaster has been started (if not, su to root and do "systemctl start
-postgresql-16.service"), cd to /usr/pgsql-16/lib/test/regress, su to 
-postgres, and execute "make check". This command will start the 
+pgspider-16.service"), cd to /usr/pgsql-16/lib/test/regress, su to
+pgspider, and execute "make check". This command will start the
 regression tests and will both show the results to the screen and store 
 the results in the file regress.out.
 
 If any tests fail, see the file regression.diffs in that directory for details,
-and read the "Regression Tests" section of the PostgreSQL documentation to
+and read the "Regression Tests" section of the PGSpider documentation to
 find out whether the differences are actually significant.  If you need help
-interpreting the results, contact the pgsql-general list at 
-postgresql.org.
+interpreting the results, contact the https://github.com/pgspider/pgspider.
 
 After testing, say "make clean" to remove the files generated by the test
 script.
@@ -260,23 +251,23 @@ script.
 STARTING POSTMASTER AUTOMATICALLY AT SYSTEM STARTUP
 -------------------------------------------------------------------------------
 Fedora / Red Hat / CentOS use the systemd package to manage server startup.
-A systemd unit file for PostgreSQL is provided in the server package, as
-/lib/systemd/system/postgresql-16.service.  To start the postmaster manually,
+A systemd unit file for PGSpider is provided in the server package, as
+/lib/systemd/system/pgspider-16.service.  To start the postmaster manually,
 as root run
-	systemctl start postgresql-16.service
+	systemctl start pgspider-16.service
 To shut the postmaster down,
-	systemctl stop postgresql-16.service
+	systemctl stop pgspider-16.service
 These two commands only change the postmaster's current status.  If you
 want the postmaster to be started automatically during future system startups,
 run
-	systemctl enable postgresql-16.service
+	systemctl enable pgspider-16.service
 To undo that again,
-	systemctl disable postgresql-16.service
+	systemctl disable pgspider-16.service
 See "man systemctl" for other possible subcommands.
 
 GRAND UNIFIED CONFIGURATION (GUC) FILE
 -------------------------------------------------------------------------------
-The PostgreSQL server has many tunable parameters -- the file 
+The PGSpider server has many tunable parameters -- the file
 /var/lib/pgsql/16/data/postgresql.conf is the master configuration file for the
 whole system.  
 
@@ -297,10 +288,11 @@ day of the week.  You can adjust this by changing postgresql.conf settings.
 
 REBUILDING FROM SOURCE RPM
 -------------------------------------------------------------------------------
-If your distribution is not supported by the binary RPMs from PostgreSQL.org, 
-you will need to rebuild from the source RPM.  Download the .src.rpm for this
-release.  You will need to be root to rebuild, unless you have set up
-a non-root build environment (which is the recommended method anyway).
+If your distribution is not supported by the binary RPMs from
+https://github.com/pgspider/pgspider, you will need to rebuild from the source
+RPM.  Download the .src.rpm for this release.  You will need to be root to
+rebuild, unless you have set up a non-root build environment (which is the
+recommended method anyway).
 
 Install the source RPM with rpm -i, then cd to the rpm building area
 (which is /usr/src/redhat by default).  You will have to have a full
@@ -319,7 +311,7 @@ pam		1	#build with PAM support.
 pltcl		1	#build the PL/Tcl procedural language package.
 plperl		1	#build the PL/Perl procedural language package.
 ssl		1	#use OpenSSL support.
-test		1	#build the postgresql16-test package.
+test		1	#build the pgspider16-test package.
 runselftest	0	#do "make check" during the build.
 uuid		1	#build contrib/uuid-ossp
 xml		1	#build with XML support
@@ -327,12 +319,12 @@ xml		1	#build with XML support
 To use these defines, invoke a rebuild like this:
 rpmbuild --rebuild --define 'plpython 0' --define 'pltcl 0' \
 	--define 'test 0' --define 'runselftest 1' --define 'kerberos 0' \
-	postgresql16-16.0-1PGDG.rhel7.src.rpm
+	pgspider16-4.0.0-1.rhel8.src.rpm
 This line would disable the plpython, pltcl, and test subpackages, enable
 the regression test run during build, and disable kerberos support.
 
 You might need to disable runselftest if there is an installed version of
-PostgreSQL that is a different major version from what you are trying to
+PGSpider that is a different major version from what you are trying to
 build.  The self test tends to pick up the installed libpq.so shared library
 in place of the one being built :-(, so if that isn't compatible the test will
 fail. Also, you can't use runselftest when doing the build as root.
@@ -351,10 +343,8 @@ depending upon function and dependencies.
 
 MORE INFORMATION
 -------------------------------------------------------------------------------
-You can get more information at http://www.postgresql.org and 
-https://yum.postgresql.org
+You can get more information at https://github.com/pgspider/pgspider
 
 Please help make this packaging better -- let us know if you find problems, or
-better ways of doing things. You can reach us by e-mail at
-pgsql-pkg-yum@lists.postgresql.org
+better ways of doing things.
 -------------------------------------------------------------------------------

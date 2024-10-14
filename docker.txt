@@ -1,0 +1,10 @@
+1. ローカルホストでbuild.shのような感じでビルドしてインストール
+2. pgspider-buildをP開ブのマシンに転送
+3. Dockerfileをpgspider/buildにコピー
+4. dockerイメージのビルド。nameがぶつかるエラーになるので注意
+sudo docker run -d --name=pgspider6 --net=user_defined_nw --ip=192.168.56.100 pgspider:latest
+5. 接続。passもswc
+./psql -h 192.168.56.100 postgres -U swc
+6. 停止または再起動
+sudo docker stop pgspider6
+sudo docker start pgspider6

@@ -948,9 +948,6 @@ pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 								 "%s" \
 								 "\n}", message_primary) :
 				 errmsg("could not obtain message string for remote error"),
-				 NULL,
-				 NULL,
-				 NULL,
 				 sql ? errcontext("remote SQL command: %s\n", sql) : 0));
 	}
 	PG_FINALLY();

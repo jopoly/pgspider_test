@@ -1,9 +1,28 @@
-#!/bin/sh
+#!/bin/bash
 
-source ./env_rpm_optimize_image.conf
+# Save the list of existing environment variables before sourcing the env_rpmbuild.conf file.
+before_vars=$(compgen -v)
+
+source docker/env_rpm_optimize_image.conf
+
+# Save the list of environment variables after sourcing the env_rpmbuild.conf file
+after_vars=$(compgen -v)
+
+# Find new variables created from configuration file
+new_vars=$(comm -13 <(echo "$before_vars" | sort) <(echo "$after_vars" | sort))
+
+# Export variables so that scripts or child processes can access them
+for var in $new_vars; do
+    export "$var"
+done
+
 set -eE
 
-docker build -t ${IMAGE_NAME_OPTIMIZED} \
+# validate parameters
+chmod a+x docker/validate_parameters.sh
+./docker/validate_parameters.sh location IMAGE_NAME_CUSTOMIZED DOCKERFILE_CUSTOMIZED BASEIMAGE proxy no_proxy
+
+docker build -t ${IMAGE_NAME_CUSTOMIZED} \
         --build-arg proxy=${proxy} \
         --build-arg no_proxy=${no_proxy} \
         --build-arg baseimage=${BASEIMAGE} \
@@ -21,4 +40,4 @@ docker build -t ${IMAGE_NAME_OPTIMIZED} \
         --build-arg ARROW_ACCESS_TOKEN=${ARROW_ACCESS_TOKEN} \
         --build-arg PARQUET_S3_FDW_URL_PACKAGE=${PARQUET_S3_FDW_URL_PACKAGE} \
         --build-arg PARQUET_S3_FDW_ACCESS_TOKEN=${PARQUET_S3_FDW_ACCESS_TOKEN} \
-        -f docker/${DOCKERFILE_OPTIMIZED} .
+        -f docker/${DOCKERFILE_CUSTOMIZED} .

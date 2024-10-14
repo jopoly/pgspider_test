@@ -4,7 +4,7 @@
 PGSPIDER_USER=pgspider
 PGSPIDER_PASSWORD=pgspider
 DEFAULT_PGSPIDER_DB=pgspider
-PGS_BIN=/usr/pgsql-16/bin
+PGS_BIN=/usr/pgsql-${PGSPIDER_BASE_POSTGRESQL_VERSION}/bin
 PGSDATA=/var/lib/postgresql/data
 RPMDATA=/home/pgspider/rpmdata
 ENABLE_FLAG=1

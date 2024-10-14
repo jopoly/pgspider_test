@@ -3,7 +3,7 @@ FROM rockylinux:8.8
 # For version management
 ARG PGSPIDER_BASE_POSTGRESQL_VERSION
 ARG PGSPIDER_RELEASE_VERSION
-ARG DISTRIBUTION_TYPE
+ARG PACKAGE_RELEASE_VERSION
 
 # For proxy
 ARG proxy
@@ -22,10 +22,11 @@ RUN dnf -y install sudo rpm-build gcc bison flex perl-ExtUtils-Embed \
     krb5-devel e2fsprogs-devel libxml2-devel libxslt-devel pam-devel \
     systemtap-sdt-devel libuuid-devel openldap-devel systemd-devel \
     make openssh openssh-server openssh-clients gettext-devel zlib \
-    gcc-c++ libcurl-devel jansson-devel sudo unzip tar clang-devel \
-    libicu-devel llvm-devel perl perl-generators selinux-policy \
-    glibc-locale-source glibc-langpack-ja pgdg-srpm-macros lz4-devel \
-    libzstd-devel docbook-dtds docbook-style-xsl libxslt
+    gcc-c++ libcurl-devel jansson-devel sudo unzip tar libxslt perl \
+    libicu-devel  perl-generators selinux-policy lz4-devel docbook-dtds \
+    glibc-locale-source glibc-langpack-ja docbook-style-xsl libzstd-devel \
+    pgdg-srpm-macros-1.0.40-1PGDG.rhel8.noarch \
+    llvm-devel clang-devel
 
 RUN dnf --enablerepo=powertools install -y perl-IPC-Run
 
@@ -40,11 +41,11 @@ RUN mkdir -p /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
 COPY ./ /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
 
 RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/rpm/* /home/user1
-RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf /home/user1
+RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-${PGSPIDER_BASE_POSTGRESQL_VERSION}-A4.pdf /home/user1
 
 RUN rm -rf  /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/.git                  \
             /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/rpm                   \
-            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf  \
+            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-${PGSPIDER_BASE_POSTGRESQL_VERSION}-A4.pdf  \
             /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/PGSpider_rpm          \
             /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/centos-gpg-keys-8-3.el8.noarch.rpm
 
@@ -53,11 +54,11 @@ RUN chown user1:user1 -R /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
 RUN chmod +x /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/configure
 
 # Add paths.
-RUN echo /usr/pgsql-16/lib > /etc/ld.so.conf.d/pgspider.conf
+RUN echo /usr/pgsql-${PGSPIDER_BASE_POSTGRESQL_VERSION}/lib > /etc/ld.so.conf.d/pgspider.conf
 RUN ldconfig
-RUN echo "export PATH=\$PATH:/usr/pgsql-16/bin" >> /etc/bashrc
+RUN echo "export PATH=\$PATH:/usr/pgsql-\${PGSPIDER_BASE_POSTGRESQL_VERSION}/bin" >> /etc/bashrc
 RUN source /etc/bashrc
-ENV PATH $PATH:/usr/pgsql-16/bin
+ENV PATH $PATH:/usr/pgsql-${PGSPIDER_BASE_POSTGRESQL_VERSION}/bin
 
 ########## Start RPM building ##########
 USER user1
@@ -66,7 +67,7 @@ RUN tar cvjf pgspider-${PGSPIDER_RELEASE_VERSION}.tar.bz2 pgspider-${PGSPIDER_RE
 
 # Build RPM file.
 WORKDIR /home/user1
-RUN rpmbuild -ba -D "_sourcedir $(pwd)" -D "dist ${DISTRIBUTION_TYPE}" -D "pgmajorversion ${PGSPIDER_BASE_POSTGRESQL_VERSION}" -D "pgreleaseversion ${PGSPIDER_RELEASE_VERSION}" PGSpider.spec
+RUN rpmbuild -ba -D "_sourcedir $(pwd)" -D "dist rhel8" -D "pgmajorversion ${PGSPIDER_BASE_POSTGRESQL_VERSION}" -D "pgreleaseversion ${PGSPIDER_RELEASE_VERSION}" -D "package_release_version ${PACKAGE_RELEASE_VERSION}" PGSpider.spec
 ########################################
 
 # unset proxy

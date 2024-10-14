@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This script verifies that the postgresql data directory has been correctly
+# This script verifies that the pgspider data directory has been correctly
 # initialized.  We do not want to automatically initdb it, because that has
 # a risk of catastrophic failure (ie, overwriting a valuable database) in
 # corner cases, such as a remotely mounted database on a volume that's a
@@ -37,19 +37,19 @@ then
     elif [ x`cat "$PGDATA/PG_VERSION"` = x"$PREVMAJORVERSION" ]
     then
         echo $"An old version of the database format was found."
-        echo $"Use \"postgresql-setup upgrade\" to upgrade to version $PGMAJORVERSION."
+        echo $"Use \"pgspider-setup upgrade\" to upgrade to version $PGMAJORVERSION."
         echo $"See $PGDOCDIR/README.rpm-dist for more information."
         exit 1
     else
         echo $"An old version of the database format was found."
-        echo $"You need to dump and reload before using PostgreSQL $PGMAJORVERSION."
+        echo $"You need to dump and reload before using PGSpider $PGMAJORVERSION."
         echo $"See $PGDOCDIR/README.rpm-dist for more information."
         exit 1
     fi
 else
     # No existing PGDATA! Warn the user to initdb it.
     echo $"\"$PGDATA\" is missing or empty."
-    echo $"Use \"/usr/pgsql-16/bin/postgresql-16-setup initdb\" to initialize the database cluster."
+    echo $"Use \"/usr/pgsql-16/bin/pgspider-16-setup initdb\" to initialize the database cluster."
     echo $"See $PGDOCDIR/README.rpm-dist for more information."
     exit 1
 fi

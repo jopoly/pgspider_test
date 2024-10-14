@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
 
 env:
-  OWNER_GITHUB: "jopoly"                      # User name. For example: [user_name] in https://github.com/user_name/your_repository.git
-  PGSPIDER_PROJECT_GITHUB: "pgspider_test"     # Repository name. For example: [your_repository] in https://github.com/user_name/your_repository.git
+  OWNER_GITHUB: "jopoly"                       # User name. For example: [user_name] in https://github.com/user_name/your_repository.git
+  PGSPIDER_PROJECT_GITHUB: "pgspider_test"            # Repository name. For example: [your_repository] in https://github.com/user_name/your_repository.git
   RPM_ARTIFACT_DIR: "fdw_rpm"                    # Directory name of Artifact to contain rpm files temporary. Default is "fdw_rpm".
-  PGSPIDER_RELEASE_VERSION: "4.0.0"              # Release version. For example: 4.1.0.
+  PGSPIDER_RELEASE_VERSION: "4.0.1"              # Release version of PGSpider. For example: 4.0.0.
   PGSPIDER_BASE_POSTGRESQL_VERSION: "16"         # Main version of postgresql that pgspider based on it. For example: 16.
-  RPM_DISTRIBUTION_TYPE: "rhel8"                 # The distribution operating system name. Default is "rhel8".
+  PACKAGE_RELEASE_VERSION: "1"                             # The number of times this version of the software has been packaged.
 
 jobs:
   # Job 1: Build rpm files and upload them to Artifact
@@ -37,7 +37,7 @@ jobs:
         docker build -t $IMAGE_TAG \
           --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
           --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
-          --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
+          --build-arg PACKAGE_RELEASE_VERSION=${{ env.PACKAGE_RELEASE_VERSION }} \
           -f docker/$DOCKERFILE .
 
     - name: Copy RPM Artifact
@@ -92,8 +92,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider contrib rpm
@@ -102,8 +102,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-contrib-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider debugsource rpm
@@ -112,8 +112,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-debugsource-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider devel rpm
@@ -122,8 +122,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-devel-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider docs rpm
@@ -132,8 +132,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-docs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider libs rpm
@@ -142,19 +142,19 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-libs-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
-    - name: Upload pgspider llvmjit rpm
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_content_type: application/octet-stream
+    # - name: Upload pgspider llvmjit rpm
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+    #     asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+    #     asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-llvmjit-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+    #     asset_content_type: application/octet-stream
 
     - name: Upload pgspider plperl rpm
       uses: actions/upload-release-asset@v1
@@ -162,8 +162,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-plperl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider pltcl rpm
@@ -172,8 +172,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-pltcl-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider server rpm
@@ -182,8 +182,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-server-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
     - name: Upload pgspider test rpm
@@ -192,8 +192,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
-        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.RPM_DISTRIBUTION_TYPE }}.x86_64.rpm
+        asset_path: ./pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
+        asset_name: pgspider${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }}-test-${{ env.PGSPIDER_RELEASE_VERSION }}-${{ env.PACKAGE_RELEASE_VERSION }}.rhel8.x86_64.rpm
         asset_content_type: application/octet-stream
 
   # Job 3: Create and publish PGSpider docker image
@@ -204,7 +204,7 @@ jobs:
 
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: "pgspider_test"
+      IMAGE_NAME: "pgspider"
       IMAGE_TAG: "${GITHUB_RUN_ID}"
 
     steps:
@@ -224,7 +224,7 @@ jobs:
     - name: Publish Docker Image
       run: |
         docker build -t ${{ env.REGISTRY }}/${{ env.OWNER_GITHUB}}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-          --build-arg DISTRIBUTION_TYPE=${{ env.RPM_DISTRIBUTION_TYPE }} \
+          --build-arg PACKAGE_RELEASE_VERSION=${{ env.PACKAGE_RELEASE_VERSION }} \
           --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${{ env.PGSPIDER_BASE_POSTGRESQL_VERSION }} \
           --build-arg PGSPIDER_RELEASE_VERSION=${{ env.PGSPIDER_RELEASE_VERSION }} \
           --build-arg PGSPIDER_RPM_URL="https://github.com/${{ env.OWNER_GITHUB }}/${{ env.PGSPIDER_PROJECT_GITHUB }}/releases/download/${{ env.PGSPIDER_RELEASE_VERSION }}" \

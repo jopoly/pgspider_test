@@ -7281,14 +7281,14 @@ SELECT value1, cos(value2), cos(value3), cos(value4), cos(0.5) FROM s3 ORDER BY 
 -- select cos (builtin function, result)
 --Testcase 521:
 SELECT value1, cos(value2), cos(value3), cos(value4), cos(0.5) FROM s3 ORDER BY 1,2,3,4,5;
- value1 |         cos         |         cos         |         cos         |        cos         
---------+---------------------+---------------------+---------------------+--------------------
-    0.1 |  0.8623188722876839 |  0.9950041651292624 |  0.8623188722876839 | 0.8775825618903728
-    0.2 |  0.8623188722876839 |  0.9800665772491609 |  0.8623188722876839 | 0.8775825618903728
-    0.3 |  0.8623188722876839 |  0.9553364856027305 |  0.8623188722876839 | 0.8775825618903728
-    1.1 | 0.48718767500700594 |   0.453596100177538 | 0.48718767500700594 | 0.8775825618903728
-    2.2 | 0.48718767500700594 | -0.5885011558074578 | 0.48718767500700594 | 0.8775825618903728
-    3.3 | 0.48718767500700594 | -0.9874797774307646 | 0.48718767500700594 | 0.8775825618903728
+ value1 |        cos         |         cos         |        cos         |        cos         
+--------+--------------------+---------------------+--------------------+--------------------
+    0.1 | 0.8623188722876839 |  0.9950041651292624 | 0.8623188722876839 | 0.8775825618903728
+    0.2 | 0.8623188722876839 |  0.9800665772491609 | 0.8623188722876839 | 0.8775825618903728
+    0.3 | 0.8623188722876839 |  0.9553364856027305 | 0.8623188722876839 | 0.8775825618903728
+    1.1 | 0.4871876750070059 |   0.453596100177538 | 0.4871876750070059 | 0.8775825618903728
+    2.2 | 0.4871876750070059 | -0.5885011558074578 | 0.4871876750070059 | 0.8775825618903728
+    3.3 | 0.4871876750070059 | -0.9874797774307646 | 0.4871876750070059 | 0.8775825618903728
 (6 rows)
 
 -- select cos (builtin function, not pushdown constraints, explain)
@@ -7362,14 +7362,14 @@ SELECT value1, cos(value2), cos(value3), cos(value4), cos(0.5) FROM s3 WHERE cos
 -- select cos (builtin function, cos in constraints, result)
 --Testcase 527:
 SELECT value1, cos(value2), cos(value3), cos(value4), cos(0.5) FROM s3 WHERE cos(value1) != 1 ORDER BY 1,2,3,4,5;
- value1 |         cos         |         cos         |         cos         |        cos         
---------+---------------------+---------------------+---------------------+--------------------
-    0.1 |  0.8623188722876839 |  0.9950041651292624 |  0.8623188722876839 | 0.8775825618903728
-    0.2 |  0.8623188722876839 |  0.9800665772491609 |  0.8623188722876839 | 0.8775825618903728
-    0.3 |  0.8623188722876839 |  0.9553364856027305 |  0.8623188722876839 | 0.8775825618903728
-    1.1 | 0.48718767500700594 |   0.453596100177538 | 0.48718767500700594 | 0.8775825618903728
-    2.2 | 0.48718767500700594 | -0.5885011558074578 | 0.48718767500700594 | 0.8775825618903728
-    3.3 | 0.48718767500700594 | -0.9874797774307646 | 0.48718767500700594 | 0.8775825618903728
+ value1 |        cos         |         cos         |        cos         |        cos         
+--------+--------------------+---------------------+--------------------+--------------------
+    0.1 | 0.8623188722876839 |  0.9950041651292624 | 0.8623188722876839 | 0.8775825618903728
+    0.2 | 0.8623188722876839 |  0.9800665772491609 | 0.8623188722876839 | 0.8775825618903728
+    0.3 | 0.8623188722876839 |  0.9553364856027305 | 0.8623188722876839 | 0.8775825618903728
+    1.1 | 0.4871876750070059 |   0.453596100177538 | 0.4871876750070059 | 0.8775825618903728
+    2.2 | 0.4871876750070059 | -0.5885011558074578 | 0.4871876750070059 | 0.8775825618903728
+    3.3 | 0.4871876750070059 | -0.9874797774307646 | 0.4871876750070059 | 0.8775825618903728
 (6 rows)
 
 -- select cos (builtin function, cos in constraints, explain)
@@ -15110,10 +15110,10 @@ EXPLAIN VERBOSE
 SELECT id, concat(sum(value1), str1) FROM s3 GROUP BY id, str1 ORDER BY 1,2;
                                       QUERY PLAN                                       
 ---------------------------------------------------------------------------------------
- Sort  (cost=288.33..288.34 rows=1 width=68)
+ Sort  (cost=344.56..344.57 rows=1 width=68)
    Output: id, (concat((sum(value1)), str1)), str1
    Sort Key: s3.id, (concat((sum(s3.value1)), s3.str1))
-   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=68)
+   ->  Foreign Scan  (cost=234.13..344.56 rows=1 width=68)
          Output: id, concat((sum(value1)), str1), str1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -21085,10 +21085,10 @@ EXPLAIN VERBOSE
 SELECT count(value1), position('XYZ' IN str1) FROM s3 GROUP BY position('XYZ' IN str1) ORDER BY 1,2;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Sort  (cost=288.33..288.34 rows=1 width=12)
+ Sort  (cost=318.33..318.34 rows=1 width=12)
    Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1)))
    Sort Key: (count(s3.value1)), (POSITION(('XYZ'::text) IN (s3.str1)))
-   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=12)
+   ->  Foreign Scan  (cost=217.06..318.32 rows=1 width=12)
          Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1)))
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -21129,10 +21129,10 @@ EXPLAIN VERBOSE
 SELECT count(value1), position('XYZ' IN str1) FROM s3 GROUP BY position('XYZ' IN str1), str1 HAVING position('XYZ' IN str1) IS NOT NULL ORDER BY 1,2;
                                                                                QUERY PLAN                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=305.40..305.40 rows=1 width=44)
+ Sort  (cost=352.29..352.30 rows=1 width=44)
    Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1))), str1
    Sort Key: (count(s3.value1)), (POSITION(('XYZ'::text) IN (s3.str1)))
-   ->  Foreign Scan  (cost=200.00..305.39 rows=1 width=44)
+   ->  Foreign Scan  (cost=233.96..352.28 rows=1 width=44)
          Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1))), str1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -26066,10 +26066,10 @@ EXPLAIN VERBOSE
 SELECT count(value1), trim('-' FROM str1) FROM s3 GROUP BY trim('-' FROM str1) ORDER BY 1,2;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
- Sort  (cost=288.33..288.34 rows=1 width=40)
+ Sort  (cost=318.33..318.34 rows=1 width=40)
    Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1))
    Sort Key: (count(s3.value1)), (TRIM(BOTH '-'::text FROM s3.str1))
-   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=40)
+   ->  Foreign Scan  (cost=217.06..318.32 rows=1 width=40)
          Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1))
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -26110,10 +26110,10 @@ EXPLAIN VERBOSE
 SELECT count(value1), trim('-' FROM str1) FROM s3 GROUP BY trim('-' FROM str1) , str1 HAVING trim('-' FROM str1) IS NOT NULL ORDER BY 1,2;
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=305.40..305.40 rows=1 width=72)
+ Sort  (cost=352.29..352.30 rows=1 width=72)
    Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1)), str1
    Sort Key: (count(s3.value1)), (TRIM(BOTH '-'::text FROM s3.str1))
-   ->  Foreign Scan  (cost=200.00..305.39 rows=1 width=72)
+   ->  Foreign Scan  (cost=233.96..352.28 rows=1 width=72)
          Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1)), str1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -28639,10 +28639,10 @@ EXPLAIN VERBOSE
 SELECT curdate(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=12)
+ Sort  (cost=417.33..417.34 rows=0 width=12)
    Output: (curdate()), c1
    Sort Key: (curdate()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=12)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=12)
          Output: curdate(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -28662,10 +28662,10 @@ EXPLAIN VERBOSE
 SELECT curdate(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=12)
+ Sort  (cost=417.33..417.34 rows=0 width=12)
    Output: (curdate()), c1
    Sort Key: (curdate()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=12)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=12)
          Output: curdate(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -28731,10 +28731,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE adddate(curdate(), 31) > '2000-01-01' GROUP BY c1 ORDER BY 1;
                                                                 QUERY PLAN                                                                 
 -------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3735.46..3735.47 rows=0 width=8)
+ Sort  (cost=3753.09..3753.10 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3735.45 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3753.08 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29040,7 +29040,7 @@ EXPLAIN VERBOSE
 SELECT mysql_current_date(), c1 FROM time_tbl GROUP BY c1;
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.82 rows=0 width=12)
+ Foreign Scan  (cost=217.06..417.32 rows=0 width=12)
    Output: mysql_current_date(), c1
    Node: pgspider_svr1 / Status: Alive
      Agg push-down: yes
@@ -29058,7 +29058,7 @@ EXPLAIN VERBOSE
 SELECT mysql_current_date(), c1 FROM time_tbl GROUP BY 2;
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.82 rows=0 width=12)
+ Foreign Scan  (cost=217.06..417.32 rows=0 width=12)
    Output: mysql_current_date(), c1
    Node: pgspider_svr1 / Status: Alive
      Agg push-down: yes
@@ -29112,10 +29112,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE adddate(mysql_current_date(), 31) > '2000-01-01' GROUP BY c1 ORDER BY 1;
                                                                       QUERY PLAN                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3735.46..3735.47 rows=0 width=8)
+ Sort  (cost=3753.09..3753.10 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3735.45 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3753.08 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29416,10 +29416,10 @@ EXPLAIN VERBOSE
 SELECT curtime(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (curtime()), c1
    Sort Key: (curtime())
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: curtime(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29439,10 +29439,10 @@ EXPLAIN VERBOSE
 SELECT curtime(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (curtime()), c1
    Sort Key: (curtime())
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: curtime(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29503,10 +29503,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(curtime(), '1 12:59:10') > '00:00:00' GROUP BY c1 ORDER BY 1;
                                                                              QUERY PLAN                                                                              
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3735.46..3735.47 rows=0 width=8)
+ Sort  (cost=3753.09..3753.10 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3735.45 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3753.08 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29812,10 +29812,10 @@ EXPLAIN VERBOSE
 SELECT mysql_current_time(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_current_time()), c1
    Sort Key: (mysql_current_time()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_current_time(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29835,10 +29835,10 @@ EXPLAIN VERBOSE
 SELECT mysql_current_time(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_current_time()), c1
    Sort Key: (mysql_current_time()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_current_time(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -29904,10 +29904,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(mysql_current_time(), '1 12:59:10') > '00:00:00' GROUP BY c1 ORDER BY 1;
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3735.46..3735.47 rows=0 width=8)
+ Sort  (cost=3753.09..3753.10 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3735.45 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3753.08 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -30204,10 +30204,10 @@ EXPLAIN VERBOSE
 SELECT mysql_current_timestamp(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_current_timestamp()), c1
    Sort Key: (mysql_current_timestamp()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_current_timestamp(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -30227,10 +30227,10 @@ EXPLAIN VERBOSE
 SELECT mysql_current_timestamp(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_current_timestamp()), c1
    Sort Key: (mysql_current_timestamp()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_current_timestamp(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -30296,10 +30296,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(mysql_current_timestamp(), '1 12:59:10') > '2000-01-01 00:00:00'::timestamp GROUP BY c1 ORDER BY 1;
                                                                                                     QUERY PLAN                                                                                                     
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=8)
+ Sort  (cost=3736.03..3736.03 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3736.01 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -34540,10 +34540,10 @@ EXPLAIN VERBOSE
 SELECT utc_timestamp(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (utc_timestamp()), c1
    Sort Key: (utc_timestamp()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: utc_timestamp(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -34563,10 +34563,10 @@ EXPLAIN VERBOSE
 SELECT utc_timestamp(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (utc_timestamp()), c1
    Sort Key: (utc_timestamp()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: utc_timestamp(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -34632,10 +34632,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(utc_timestamp(), '1 12:59:10'::interval) > '1997-10-14 00:00:00'::timestamp GROUP BY c1 ORDER BY 1;
                                                                                                QUERY PLAN                                                                                                
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=8)
+ Sort  (cost=3736.03..3736.03 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3736.01 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -34935,7 +34935,7 @@ EXPLAIN VERBOSE
 SELECT utc_time(), c1 FROM time_tbl GROUP BY c1;
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+ Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
    Output: utc_time(), c1
    Node: pgspider_svr1 / Status: Alive
      Agg push-down: yes
@@ -34953,7 +34953,7 @@ EXPLAIN VERBOSE
 SELECT utc_time(), c1 FROM time_tbl GROUP BY 2;
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+ Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
    Output: utc_time(), c1
    Node: pgspider_svr1 / Status: Alive
      Agg push-down: yes
@@ -35017,10 +35017,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE second(utc_time()) > 10 GROUP BY c1 ORDER BY 1;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=8)
+ Sort  (cost=3736.03..3736.03 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3736.01 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -35320,10 +35320,10 @@ EXPLAIN VERBOSE
 SELECT utc_date(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=12)
+ Sort  (cost=417.33..417.34 rows=0 width=12)
    Output: (utc_date()), c1
    Sort Key: (utc_date()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=12)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=12)
          Output: utc_date(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -35343,10 +35343,10 @@ EXPLAIN VERBOSE
 SELECT utc_date(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=12)
+ Sort  (cost=417.33..417.34 rows=0 width=12)
    Output: (utc_date()), c1
    Sort Key: (utc_date()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=12)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=12)
          Output: utc_date(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -35412,10 +35412,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(utc_date(), '1 12:59:10'::interval) > '1997-10-14 00:00:00'::timestamp GROUP BY c1 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3735.46..3735.47 rows=0 width=8)
+ Sort  (cost=3753.09..3753.10 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3735.45 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3753.08 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -35673,10 +35673,10 @@ EXPLAIN VERBOSE
 SELECT unix_timestamp(), unix_timestamp(c3), unix_timestamp(c2), c1 FROM time_tbl GROUP BY c1,c2,c3 ORDER BY 1,2,3,4;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.83..289.84 rows=0 width=116)
+ Sort  (cost=873.13..873.14 rows=0 width=116)
    Output: (unix_timestamp()), (unix_timestamp(c3)), (unix_timestamp((c2)::timestamp without time zone)), c1, c2, c3
    Sort Key: (unix_timestamp()), (unix_timestamp(time_tbl.c3)), (unix_timestamp((time_tbl.c2)::timestamp without time zone)), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..289.82 rows=0 width=116)
+   ->  Foreign Scan  (cost=251.19..873.12 rows=0 width=116)
          Output: unix_timestamp(), unix_timestamp(c3), unix_timestamp((c2)::timestamp without time zone), c1, c2, c3
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -36030,10 +36030,10 @@ EXPLAIN VERBOSE
 SELECT to_seconds(971014), to_seconds(c3), to_seconds(c2), c1 FROM time_tbl GROUP BY c1,c2,c3 ORDER BY 1,2,3,4;
                                                              QUERY PLAN                                                             
 ------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.83..289.84 rows=0 width=44)
+ Sort  (cost=873.13..873.14 rows=0 width=44)
    Output: (to_seconds(971014)), (to_seconds(c3)), (to_seconds((c2)::timestamp without time zone)), c1, c2, c3
    Sort Key: (to_seconds(971014)), (to_seconds(time_tbl.c3)), (to_seconds((time_tbl.c2)::timestamp without time zone)), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..289.82 rows=0 width=44)
+   ->  Foreign Scan  (cost=251.19..873.12 rows=0 width=44)
          Output: to_seconds(971014), to_seconds(c3), to_seconds((c2)::timestamp without time zone), c1, c2, c3
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -36385,10 +36385,10 @@ EXPLAIN VERBOSE
 SELECT to_days(971014), to_days(c2), c1 FROM time_tbl GROUP BY c1,c2 ORDER BY 1,2,3;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Sort  (cost=289.33..289.33 rows=0 width=20)
+ Sort  (cost=683.86..683.87 rows=0 width=20)
    Output: (to_days(971014)), (to_days(c2)), c1, c2
    Sort Key: (to_days(971014)), (to_days(time_tbl.c2)), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..289.32 rows=0 width=20)
+   ->  Foreign Scan  (cost=234.13..683.85 rows=0 width=20)
          Output: to_days(971014), to_days(c2), c1, c2
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -39320,10 +39320,10 @@ EXPLAIN VERBOSE
 SELECT id, c1 FROM time_tbl WHERE addtime(sysdate(), '1 12:59:10'::interval) > '1997-10-14 00:00:00'::timestamp GROUP BY id,c1 ORDER BY 1,2;
                                                                                                 QUERY PLAN                                                                                                
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=12)
+ Sort  (cost=3749.81..3749.82 rows=0 width=12)
    Output: id, c1
    Sort Key: time_tbl.id, time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=12)
+   ->  Foreign Scan  (cost=211.38..3749.80 rows=0 width=12)
          Output: id, c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -40788,10 +40788,10 @@ EXPLAIN VERBOSE
 SELECT second(c1), second(c3), c1 FROM time_tbl GROUP BY c1,c3 ORDER BY 1,2,3;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Sort  (cost=289.33..289.33 rows=0 width=24)
+ Sort  (cost=683.86..683.87 rows=0 width=24)
    Output: (second(c1)), (second(c3)), c1, c3
    Sort Key: (second(time_tbl.c1)), (second(time_tbl.c3)), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..289.32 rows=0 width=24)
+   ->  Foreign Scan  (cost=234.13..683.85 rows=0 width=24)
          Output: second(c1), second(c3), c1, c3
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -41165,10 +41165,10 @@ EXPLAIN VERBOSE
 SELECT sec_to_time(id), c1 FROM time_tbl GROUP BY id,c1 ORDER BY 1,2;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=20)
+ Sort  (cost=513.36..513.37 rows=0 width=20)
    Output: (sec_to_time(id)), c1, id
    Sort Key: (sec_to_time(time_tbl.id)), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=20)
+   ->  Foreign Scan  (cost=234.13..513.35 rows=0 width=20)
          Output: sec_to_time(id), c1, id
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -42578,10 +42578,10 @@ EXPLAIN VERBOSE
 SELECT mysql_now(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_now()), c1
    Sort Key: (mysql_now()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_now(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -42601,10 +42601,10 @@ EXPLAIN VERBOSE
 SELECT mysql_now(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_now()), c1
    Sort Key: (mysql_now()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_now(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -42670,10 +42670,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(mysql_now(), '1 12:59:10') > '2000-01-01 00:00:00'::timestamp GROUP BY c1 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                              
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=8)
+ Sort  (cost=3736.03..3736.03 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3736.01 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -45163,10 +45163,10 @@ EXPLAIN VERBOSE
 SELECT mysql_localtimestamp(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_localtimestamp()), c1
    Sort Key: (mysql_localtimestamp()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_localtimestamp(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -45186,10 +45186,10 @@ EXPLAIN VERBOSE
 SELECT mysql_localtimestamp(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_localtimestamp()), c1
    Sort Key: (mysql_localtimestamp()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_localtimestamp(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -45255,10 +45255,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(mysql_localtimestamp(), '1 12:59:10') > '2000-01-01 00:00:00'::timestamp GROUP BY c1 ORDER BY 1;
                                                                                                    QUERY PLAN                                                                                                   
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=8)
+ Sort  (cost=3736.03..3736.03 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3736.01 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -45549,10 +45549,10 @@ EXPLAIN VERBOSE
 SELECT mysql_localtime(), c1 FROM time_tbl GROUP BY c1 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_localtime()), c1
    Sort Key: (mysql_localtime()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_localtime(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -45572,10 +45572,10 @@ EXPLAIN VERBOSE
 SELECT mysql_localtime(), c1 FROM time_tbl GROUP BY 2 ORDER BY 1,2;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=288.83..288.83 rows=0 width=16)
+ Sort  (cost=417.33..417.34 rows=0 width=16)
    Output: (mysql_localtime()), c1
    Sort Key: (mysql_localtime()), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=217.06..417.32 rows=0 width=16)
          Output: mysql_localtime(), c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -45641,10 +45641,10 @@ EXPLAIN VERBOSE
 SELECT c1 FROM time_tbl WHERE addtime(mysql_localtime(), '1 12:59:10') > '2000-01-01 00:00:00'::timestamp GROUP BY c1 ORDER BY 1;
                                                                                                 QUERY PLAN                                                                                                 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3718.39..3718.40 rows=0 width=8)
+ Sort  (cost=3736.03..3736.03 rows=0 width=8)
    Output: c1
    Sort Key: time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..3718.38 rows=0 width=8)
+   ->  Foreign Scan  (cost=205.69..3736.01 rows=0 width=8)
          Output: c1
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -47060,10 +47060,10 @@ EXPLAIN VERBOSE
 SELECT from_unixtime(1447430881), from_unixtime(id + 1447430881, '%Y %D %M %h:%i:%s %x'), c1 FROM time_tbl GROUP BY c1,id ORDER BY 1,2,3;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.34..289.34 rows=0 width=52)
+ Sort  (cost=687.27..687.28 rows=0 width=52)
    Output: (from_unixtime('1447430881'::bigint)), (from_unixtime(((id + 1447430881))::bigint, '%Y %D %M %h:%i:%s %x'::text)), c1, id
    Sort Key: (from_unixtime('1447430881'::bigint)), (from_unixtime(((time_tbl.id + 1447430881))::bigint, '%Y %D %M %h:%i:%s %x'::text)), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..289.33 rows=0 width=52)
+   ->  Foreign Scan  (cost=234.13..687.26 rows=0 width=52)
          Output: from_unixtime('1447430881'::bigint), from_unixtime(((id + 1447430881))::bigint, '%Y %D %M %h:%i:%s %x'::text), c1, id
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -47422,10 +47422,10 @@ EXPLAIN VERBOSE
 SELECT from_days(id + 200719), c1 FROM time_tbl GROUP BY c1,id ORDER BY 1,2;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Sort  (cost=288.83..288.84 rows=0 width=16)
+ Sort  (cost=515.07..515.07 rows=0 width=16)
    Output: (from_days((id + 200719))), c1, id
    Sort Key: (from_days((time_tbl.id + 200719))), time_tbl.c1
-   ->  Foreign Scan  (cost=200.00..288.82 rows=0 width=16)
+   ->  Foreign Scan  (cost=234.13..515.06 rows=0 width=16)
          Output: from_days((id + 200719)), c1, id
          Node: pgspider_svr1 / Status: Alive
            Sort push-down: no
@@ -50255,7 +50255,7 @@ EXPLAIN VERBOSE
 SELECT COUNT(tag1) FROM s7a GROUP BY tag1;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=40)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=40)
    Output: (count(tag1)), tag1
    Node: pgspider_svr1 / Status: Alive
      Agg push-down: yes
@@ -56113,7 +56113,7 @@ EXPLAIN VERBOSE
 SELECT id, json_depth(json_build_object('a', 1)) FROM s8 GROUP BY 1 HAVING count(c2) > 1;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.82 rows=1 width=8)
+ Foreign Scan  (cost=217.06..418.32 rows=1 width=8)
    Output: id, json_depth(json_build_object('a', 1))
    Node: pgspider_svr1 / Status: Alive
      Agg push-down: yes

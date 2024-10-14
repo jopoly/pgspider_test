@@ -4,8 +4,7 @@
 %global packageversion 160
 %global pgpackageversion 16
 %global prevmajorversion 15
-%global sname postgresql
-%global sname_pgs pgspider
+%global sname pgspider
 %global pgbaseinstdir	/usr/pgsql-%{pgmajorversion}
 
 %global beta 0
@@ -62,9 +61,9 @@
 %global __provides_exclude ^perl\\((PostgresVersion|PostgresNode|RecursiveCopy|SimpleTee|TestLib|PostgreSQL::Test::BackgroundPsql)
 
 Summary:	PGSpider is High-Performance SQL Cluster Engine for distributed big data.
-Name:		%{sname_pgs}%{pgmajorversion}
+Name:		%{sname}%{pgmajorversion}
 Version:	%{pgreleaseversion}
-Release:	%{?dist}
+Release:	%{?package_release_version}.%{?dist}
 License:	TOSHIBA CORPORATION
 Url:		https://github.com/pgspider
 
@@ -248,7 +247,7 @@ Requires:	%{name}-libs%{?_isa} = %{version}-%{release}
 Requires(post):	%{_sbindir}/update-alternatives
 Requires(postun):	%{_sbindir}/update-alternatives
 
-Provides:	%{sname_pgs} >= %{version}-%{release}
+Provides:	%{sname} >= %{version}-%{release}
 
 %description
 PGSpider is High-Performance SQL Cluster Engine for distributed big data.
@@ -546,7 +545,7 @@ benchmarks.
 %endif
 
 %prep
-%setup -q -n %{sname_pgs}-%{version}
+%setup -q -n %{sname}-%{version}
 
 %patch -P 1 -p0
 %patch -P 3 -p0
@@ -749,11 +748,11 @@ esac
 sed -e 's|^PGVERSION=.*$|PGVERSION=%{pgmajorversion}|' \
 	-e 's|^PGENGINE=.*$|PGENGINE=%{pgbaseinstdir}/bin|' \
 	-e 's|^PREVMAJORVERSION=.*$|PREVMAJORVERSION=%{prevmajorversion}|' \
-	<%{SOURCE17} >postgresql-%{pgmajorversion}-setup
-%{__install} -m 755 postgresql-%{pgmajorversion}-setup %{buildroot}%{pgbaseinstdir}/bin/postgresql-%{pgmajorversion}-setup
+	<%{SOURCE17} >pgspider-%{pgmajorversion}-setup
+%{__install} -m 755 pgspider-%{pgmajorversion}-setup %{buildroot}%{pgbaseinstdir}/bin/pgspider-%{pgmajorversion}-setup
 # Create a symlink of the setup script under $PATH
 %{__mkdir} -p %{buildroot}%{_bindir}
-%{__ln_s} ../../../../../../../../../../../../../../%{pgbaseinstdir}/bin/postgresql-%{pgmajorversion}-setup %{buildroot}%{_bindir}/
+%{__ln_s} ../../../../../../../../../../../../../../%{pgbaseinstdir}/bin/pgspider-%{pgmajorversion}-setup %{buildroot}%{_bindir}/
 
 # prep the startup check script, including insertion of some values it needs
 sed -e 's|^PGVERSION=.*$|PGVERSION=%{pgmajorversion}|' \
@@ -893,9 +892,9 @@ cat postgres-%{pgmajorversion}.lang pg_resetwal-%{pgmajorversion}.lang pg_checks
 %endif
 
 %pre server
-groupadd -g 26 -o -r postgres >/dev/null 2>&1 || :
-useradd -M -g postgres -o -r -d /var/lib/pgsql -s /bin/bash \
-	-c "PGSpider Server" -u 26 postgres >/dev/null 2>&1 || :
+groupadd -g 26 -o -r pgspider >/dev/null 2>&1 || :
+useradd -M -g pgspider -o -r -d /var/lib/pgsql -s /bin/bash \
+	-c "PGSpider Server" -u 26 pgspider >/dev/null 2>&1 || :
 
 %post server
 /sbin/ldconfig
@@ -903,14 +902,14 @@ if [ $1 -eq 1 ] ; then
    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
    %if 0%{?suse_version}
    %if 0%{?suse_version} >= 1315
-   %service_add_pre postgresql-%{pgpackageversion}.service
+   %service_add_pre pgspider-%{pgpackageversion}.service
    %endif
    %else
    %systemd_post %{sname}-%{pgpackageversion}.service
    %endif
 fi
 
-# postgres' .bash_profile.
+# pgspider' .bash_profile.
 # We now don't install .bash_profile as we used to in pre 9.0. Instead, use cat,
 # so that package manager will be happy during upgrade to new major version.
 echo "[ -f /etc/profile ] && source /etc/profile
@@ -920,7 +919,7 @@ export PGDATA
 # Use the file below. This is not overridden
 # by the RPMS.
 [ -f /var/lib/pgsql/.pgsql_profile ] && source /var/lib/pgsql/.pgsql_profile" > /var/lib/pgsql/.bash_profile
-chown postgres: /var/lib/pgsql/.bash_profile
+chown pgspider: /var/lib/pgsql/.bash_profile
 chmod 700 /var/lib/pgsql/.bash_profile
 
 %preun server
@@ -1278,11 +1277,11 @@ fi
 
 %dir %{pgbaseinstdir}/lib
 %dir %{pgbaseinstdir}/share
-%attr(700,postgres,postgres) %dir /var/lib/pgsql
-%attr(700,postgres,postgres) %dir /var/lib/pgsql/%{pgmajorversion}
-%attr(700,postgres,postgres) %dir /var/lib/pgsql/%{pgmajorversion}/data
-%attr(700,postgres,postgres) %dir /var/lib/pgsql/%{pgmajorversion}/backups
-%attr(755,postgres,postgres) %dir /var/run/%{sname}
+%attr(700,pgspider,pgspider) %dir /var/lib/pgsql
+%attr(700,pgspider,pgspider) %dir /var/lib/pgsql/%{pgmajorversion}
+%attr(700,pgspider,pgspider) %dir /var/lib/pgsql/%{pgmajorversion}/data
+%attr(700,pgspider,pgspider) %dir /var/lib/pgsql/%{pgmajorversion}/backups
+%attr(755,pgspider,pgspider) %dir /var/run/%{sname}
 %{pgbaseinstdir}/lib/*_and_*.so
 %{pgbaseinstdir}/share/information_schema.sql
 %{pgbaseinstdir}/share/snowball_create.sql
@@ -1342,9 +1341,9 @@ fi
 
 %if %test
 %files test
-%defattr(-,postgres,postgres)
-%attr(-,postgres,postgres) %{pgbaseinstdir}/lib/test/*
-%attr(-,postgres,postgres) %dir %{pgbaseinstdir}/lib/test
+%defattr(-,pgspider,pgspider)
+%attr(-,pgspider,pgspider) %{pgbaseinstdir}/lib/test/*
+%attr(-,pgspider,pgspider) %dir %{pgbaseinstdir}/lib/test
 %endif
 
 %changelog

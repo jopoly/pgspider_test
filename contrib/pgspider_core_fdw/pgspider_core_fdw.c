@@ -26,6 +26,7 @@ PG_MODULE_MAGIC;
 #include <time.h>
 #include <unistd.h>
 
+#include "access/relation.h"
 #include "access/table.h"
 #include "access/tableam.h"
 #include "access/xact.h"
@@ -596,6 +597,7 @@ static TupleTableSlot **spd_concat_rslots(TupleTableSlot ***r_slots,
 										  int num_child,
 										  int *slot_cnt);
 static TupleTableSlot *spd_clone_tuple_slot(TupleTableSlot *srcslot);
+static void spd_BuildRelationAliases(TupleDesc tupdesc, Alias *alias, Alias *eref);
 
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
@@ -2094,13 +2096,13 @@ extract_expr_Var(Node *node, Extractcells * *extcells, List **tlist, List **comp
 			foreach(arg, aggref->args)
 			{
 				TargetEntry *tle = (TargetEntry *) lfirst(arg);
-				Node	   *node = (Node *) tle->expr;
+				Node	   *expr = (Node *) tle->expr;
 
-				switch (nodeTag(node))
+				switch (nodeTag(expr))
 				{
 					case T_Const:
 						{
-							Const	   *const_tmp = (Const *) node;
+							Const	   *const_tmp = (Const *) expr;
 
 							if (const_tmp->constisnull)
 							{
@@ -2457,7 +2459,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 
 						extcells->cells = lappend(extcells->cells, mapcells);
 
-						if (!(((Aggref *) inner_expr)->aggfnoid) >= FirstGenbkiObjectId
+						if (!((((Aggref *) inner_expr)->aggfnoid) >= FirstGenbkiObjectId)
 							&& (((Aggref *) inner_expr)->aggtype) == TEXTOID)
 							fdw_private->record_function = true;
 					}
@@ -2758,9 +2760,9 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 {
 	fssthrdInfo->state = SPD_FS_STATE_WAIT_BEGIN;
 
-	SPD_WRITE_LOCK_TRY(scan_mutex);
+	SPD_WRITE_LOCK_TRY(scan_mutex, _spd_write_lock_try);
 
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		/*
 		 * If Aggregation does not push down, BeginForeignScan will be
@@ -2775,11 +2777,11 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 				 * time
 				 */
 				fssthrdInfo->state = SPD_FS_STATE_BEGIN;
-				SPD_LOCK_TRY(&postgres_fdw_mutex);
+				SPD_LOCK_TRY(&postgres_fdw_mutex, _spd_lock_try);
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
 				isPostgresFdwInit = true;
-				SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+				SPD_UNLOCK_CATCH(&postgres_fdw_mutex, _spd_lock_try);
 			}
 			else if (strcmp(fssthrdInfo->fdw->fdwname, MYSQL_FDW_NAME) == 0)
 			{
@@ -2812,10 +2814,10 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 					 */
 					if (strcmp(fssthrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 					{
-						SPD_LOCK_TRY(&oracle_fdw_mutex);
+						SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 						fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 															fssthrdInfo->eflags);
-						SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+						SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 					}
 					else
 					{
@@ -2823,10 +2825,10 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 						 * Need mutex to avoid concurrency conflict between Scan (including
 						 * Main query and Subquery if have) and Modify threads.
 						 */
-						SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+						SPD_LOCK_TRY(&child_node_info->scan_modify_mutex, _spd_lock_try);
 						fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
-						SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+						SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex, _spd_lock_try);
 					}
 				}
 				else
@@ -2837,13 +2839,13 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 			}
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 
-	SPD_RWUNLOCK_CATCH(scan_mutex);
+	SPD_RWUNLOCK_CATCH(scan_mutex, _spd_write_lock_try);
 }
 
 /**
@@ -2925,26 +2927,26 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		/* Executes the aggregate if necessary. */
 		if (pChildInfo->pseudo_agg)
 		{
-			SPD_WRITE_LOCK_TRY(scan_mutex);
+			SPD_WRITE_LOCK_TRY(scan_mutex, _spd_write_lock_try);
 			fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
 			if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
 			{
 				/* We need to make postgres_fdw_options variable initial one time */
-				SPD_LOCK_TRY(&postgres_fdw_mutex);
+				SPD_LOCK_TRY(&postgres_fdw_mutex, _spd_lock_try);
 				*pagg_result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
 				isPostgresFdwInit = true;
-				SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+				SPD_UNLOCK_CATCH(&postgres_fdw_mutex, _spd_lock_try);
 			}
 			else
 			{
 				*pagg_result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
 			}
-			SPD_RWUNLOCK_CATCH(scan_mutex);
+			SPD_RWUNLOCK_CATCH(scan_mutex, _spd_write_lock_try);
 		}
 
 		/* Start Iterate Foreign Scan loop. */
@@ -3016,9 +3018,9 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 				 * Retreives aggregated value tuple from inlying non pushdown
 				 * source.
 				 */
-				SPD_READ_LOCK_TRY(scan_mutex);
+				SPD_READ_LOCK_TRY(scan_mutex, _spd_read_lock_try);
 				slot = SPI_execAgg((AggState *) *pagg_result);
-				SPD_RWUNLOCK_CATCH(scan_mutex);
+				SPD_RWUNLOCK_CATCH(scan_mutex, _spd_read_lock_try);
 
 				/*
 				 * Need deep copy when adding slot to queue because
@@ -3029,7 +3031,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 			}
 			else
 			{
-				SPD_READ_LOCK_TRY(scan_mutex);
+				SPD_READ_LOCK_TRY(scan_mutex, _spd_read_lock_try);
 
 				/*
 				 * Make child node use per-tuple memory context created by
@@ -3044,9 +3046,9 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 				 */
 				if (strcmp(fssthrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
+					SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 				}
 				else if (child_node_info != NULL)
 				{
@@ -3054,9 +3056,9 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 					 * Need mutex to avoid concurrency conflict between Scan (including
 					 * Main query and Subquery if have) and Modify threads.
 					 */
-					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex, _spd_lock_try);
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex, _spd_lock_try);
 				}
 				else
 				{
@@ -3066,7 +3068,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 				spd_tm_count_iterateforeignscan(&fdw_private_main->tm_info, pChildInfo->index_threadinfo);
 
 				fssthrdInfo->state = SPD_FS_STATE_ITERATE_RUNNING;
-				SPD_RWUNLOCK_CATCH(scan_mutex);
+				SPD_RWUNLOCK_CATCH(scan_mutex, _spd_read_lock_try);
 				deepcopy = true;
 
 				/*
@@ -3131,7 +3133,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 		}
 
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 
@@ -3147,7 +3149,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 		elog(DEBUG1, "Thread error occurred during IterateForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 }
 
 /**
@@ -3167,7 +3169,7 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 						pthread_rwlock_t * scan_mutex, PlanState *agg_result,
 						MemoryContext *tuplectx, SpdTimeMeasureInfo *tm_info)
 {
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		/*
 		 * If there is request to force end child thread while EndForeignScan has not been call,
@@ -3182,7 +3184,7 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 			{
 				/* End of the ForeignScan */
 				fssthrdInfo->state = SPD_FS_STATE_END;
-				SPD_READ_LOCK_TRY(scan_mutex);
+				SPD_READ_LOCK_TRY(scan_mutex, _spd_read_lock_try);
 				if (!pChildInfo->pseudo_agg)
 				{
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
@@ -3193,7 +3195,7 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 				}
 
 
-				SPD_RWUNLOCK_CATCH(scan_mutex);
+				SPD_RWUNLOCK_CATCH(scan_mutex, _spd_read_lock_try);
 				fssthrdInfo->requestEndScan = false;
 				break;
 			}
@@ -3224,13 +3226,13 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 				fssthrdInfo->requestEndScan = true;
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 
 }
 
@@ -3252,9 +3254,9 @@ spd_RescanForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, pthread_rwlock_t
 	if (fssthrdInfo->requestRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
-		SPD_READ_LOCK_TRY(scan_mutex);
+		SPD_READ_LOCK_TRY(scan_mutex, _spd_read_lock_try);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-		SPD_RWUNLOCK_CATCH(scan_mutex);
+		SPD_RWUNLOCK_CATCH(scan_mutex, _spd_read_lock_try);
 
 		spd_tm_count_rescanforeignscan(tm_info, fssthrdInfo->childInfoIndex);
 
@@ -3556,11 +3558,11 @@ THREAD_EXIT:
 		}
 
 		/* When there is any error and EndForeignScan of child thead has not been executed, try to call it here */
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			if (fssthrdInfo->requestEndScan)
 			{
-				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex, _spd_read_lock_try);
 				if (!pChildInfo->pseudo_agg)
 				{
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
@@ -3570,18 +3572,18 @@ THREAD_EXIT:
 					ExecEndNode(agg_result);
 				}
 
-				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex, _spd_read_lock_try);
 				fssthrdInfo->requestEndScan = false;
 			}
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * Can not end foreign scan normally because of previous error. Ignore it.
 			 * The main error has been processed and handled by main thread.
 			 */
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 	}
 
 	free_guc_variables_child_thread();
@@ -4005,33 +4007,143 @@ groupby_has_spdurl(PlannerInfo *root)
 	return false;
 }
 
+/*
+ * spd_BuildRelationAliases
+ *
+ * Construct the eref column name list for a relation RTE.
+ * 
+ * @param[in] tupdesc: the physical column information
+ * @param[in] alias: the user-supplied alias, or NULL if none
+ * @param[in] eref: the eref Alias to store column names
+ * 
+ * Refer buildRelationAliases() in src/backend/parser/parse_relation.c 
+ */
+
+static void
+spd_BuildRelationAliases(TupleDesc tupdesc, Alias *alias, Alias *eref)
+{
+	int			maxattrs = tupdesc->natts;
+	List	   *aliaslist;
+	ListCell   *aliaslc;
+	int			numaliases;
+	int			varattno;
+	int			numdropped = 0;
+
+	Assert(eref->colnames == NIL);
+
+	if (alias)
+	{
+		aliaslist = alias->colnames;
+		aliaslc = list_head(aliaslist);
+		numaliases = list_length(aliaslist);
+		/* We'll rebuild the alias colname list */
+		alias->colnames = NIL;
+	}
+	else
+	{
+		aliaslist = NIL;
+		aliaslc = NULL;
+		numaliases = 0;
+	}
+
+	for (varattno = 0; varattno < maxattrs; varattno++)
+	{
+		Form_pg_attribute attr = TupleDescAttr(tupdesc, varattno);
+		String	   *attrname;
+
+		if (attr->attisdropped)
+		{
+			/* Always insert an empty string for a dropped column */
+			attrname = makeString(pstrdup(""));
+			if (aliaslc)
+				alias->colnames = lappend(alias->colnames, attrname);
+			numdropped++;
+		}
+		else if (aliaslc)
+		{
+			/* Use the next user-supplied alias */
+			attrname = lfirst_node(String, aliaslc);
+			aliaslc = lnext(aliaslist, aliaslc);
+			alias->colnames = lappend(alias->colnames, attrname);
+		}
+		else
+		{
+			attrname = makeString(pstrdup(NameStr(attr->attname)));
+			/* we're done with the alias if any */
+		}
+
+		eref->colnames = lappend(eref->colnames, attrname);
+	}
+
+	/* Too many user-supplied aliases? */
+	if (aliaslc)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+				 errmsg("table \"%s\" has %d columns available but %d columns specified",
+						eref->aliasname, maxattrs - numdropped, numaliases)));
+}
+
 /**
  * spd_makeRangeTableEntry
  *
  * Create new range table entry.
  *
  * @param[in] relid Relation OID
- * @param[in] relkind relation kind (see pg_class.relkind)
+ * @param[in] parent_rte parent range table entry
  * @param[in] spd_url_list URL list
  * @return Created range table entry
  */
 static RangeTblEntry *
-spd_makeRangeTableEntry(Oid relid, char relkind, List *spd_url_list)
+spd_makeRangeTableEntry(Oid relid, RangeTblEntry *parent_rte, List *spd_url_list)
 {
-	RangeTblEntry *rte;
-
 	/* Build a minimal RTE for the rel. */
-	rte = makeNode(RangeTblEntry);
-	rte->rtekind = RTE_RELATION;
-	rte->relid = relid;
-	rte->relkind = relkind;
-	rte->eref = makeNode(Alias);
-	rte->eref->aliasname = pstrdup("");
-	rte->lateral = false;
-	rte->inh = false;
-	rte->inFromCl = true;
-	rte->eref = makeAlias(pstrdup(""), NIL);
-	rte->rellockmode = AccessShareLock; /* For SELECT query */
+	RangeTblEntry *rte = makeNode(RangeTblEntry);
+
+	switch (parent_rte->rtekind)
+	{
+		case RTE_JOIN:
+			rte->rtekind = RTE_JOIN;
+			rte->subquery = NULL;
+			rte->jointype = parent_rte->jointype;
+			rte->alias = rte->eref =  makeAlias("unnamed_join", NIL);
+
+			rte->lateral = false;
+			rte->inFromCl = parent_rte->inFromCl;
+
+			break;
+
+		case RTE_SUBQUERY:
+			rte->rtekind = RTE_SUBQUERY;
+			rte->subquery = parent_rte->subquery;
+			rte->alias = rte->eref = makeAlias("unnamed_subquery", NIL);
+
+			rte->lateral = parent_rte->lateral;
+			rte->inFromCl = parent_rte->inFromCl;
+
+			break;
+
+		default:
+			rte->rtekind = RTE_RELATION;
+			rte->relid = relid;
+			rte->relkind = parent_rte->relkind;
+			rte->lateral = false;
+			rte->inh = false;
+			rte->inFromCl = true;
+			rte->rellockmode = AccessShareLock; /* For SELECT query */
+
+			if (relid != 0)
+			{
+				Relation rel;
+
+				rte->alias = rte->eref = makeAlias(pstrdup(get_rel_name(relid)), NIL);
+				rel = relation_open(relid, AccessShareLock);
+				spd_BuildRelationAliases(rel->rd_att, rte->alias, rte->eref);
+				
+				table_close(rel, NoLock);	
+			}
+
+			break;
+	}
 
 	/*
 	 * If child node is pgspider_fdw and IN clause is used, then should set
@@ -4183,13 +4295,21 @@ spd_CreateChildRoot(PlannerInfo *root, Index relid, Oid tableOid, Oid oid_server
 			child_relid = 0;
 
 		/* Create a range table entry. */
-		child_rte = spd_makeRangeTableEntry(child_relid, rte->relkind, spd_url_list);
-
+		child_rte = spd_makeRangeTableEntry(child_relid, rte, spd_url_list);
 		if (child_relid != 0)
 		{
 			/* Create RTEPermissionInfo */
 			child_perminfo = addRTEPermissionInfo(&rteperminfos, child_rte);
 			child_perminfo->requiredPerms = ACL_SELECT;
+
+			/* If parent RangeTblEntry has a RTEPermissionInfo, inherit checkAsUser from it */
+			if (rte->perminfoindex != 0 &&
+				rte->perminfoindex <= list_length(root->parse->rteperminfos))
+			{
+				RTEPermissionInfo *parent_perminfo = getRTEPermissionInfo(root->parse->rteperminfos, rte);
+
+				child_perminfo->checkAsUser = parent_perminfo->checkAsUser;
+			}
 		}
 
 		rtable = lappend(rtable, child_rte);
@@ -4427,12 +4547,12 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		{
 #endif
 			/* Do child node's GetForeignRelSize. */
-			PG_TRY();
+			PG_TRY(_try_postfix);
 			{
 				childinfo[i].fdwroutine->GetForeignRelSize(child_root, child_baserel, rel_oid);
 				childinfo[i].root = child_root;
 			}
-			PG_CATCH();
+			PG_CATCH(_try_postfix);
 			{
 				/*
 				 * Even if it fails to create dummy_root_list, pgspider_core
@@ -4461,7 +4581,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 				MemoryContextSwitchTo(oldcontext);
 				FlushErrorState();
 			}
-			PG_END_TRY();
+			PG_END_TRY(_try_postfix);
 #ifndef WITHOUT_KEEPALIVE
 		}
 		else
@@ -4503,7 +4623,7 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 		RTEPermissionInfo *perminfo;
 
 		/* Create a range table entry. */
-		new_rte = spd_makeRangeTableEntry(rte->relid, rte->relkind, NULL);
+		new_rte = spd_makeRangeTableEntry(rte->relid, rte, NULL);
 
 		if (new_rte->relid != 0)
 		{
@@ -4511,7 +4631,7 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 			perminfo = addRTEPermissionInfo(&rteperminfos, new_rte);
 			perminfo->requiredPerms = ACL_SELECT;
 		}
-
+	
 		rtable = lappend(rtable, new_rte);
 	}
 
@@ -5012,6 +5132,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 
 	/* pdate dummy child root */
 	root_child->parse->groupClause = list_copy(root->parse->groupClause);
+	root_child->processed_groupClause = list_copy(root->processed_groupClause);
 
 	if (fdw_private->having_quals != NIL)
 	{
@@ -5077,6 +5198,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 	{
 		/* Remove SPDURL from group clause. */
 		root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, root_child->parse->groupClause);
+		root_child->processed_groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, root_child->processed_groupClause);
 
 		/*
 		 * Modify child tlist. We use child tlist for fetching data from child
@@ -5212,7 +5334,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 														  output_rel_child, tmp_path,
 														  root_child->upper_targets[UPPERREL_GROUP_AGG],
 														  aggStrategy, AGGSPLIT_SIMPLE,
-														  root_child->parse->groupClause, NULL, &aggcosts_child,
+														  root_child->processed_groupClause, NULL, &aggcosts_child,
 														  1);
 
 		fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid);
@@ -5745,7 +5867,7 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	 * rows is passed to pathnode->path.rows. When creating aggregation plan,
 	 * somehow path.rows is passed to dNumGroups.
 	 */
-	if (!parse->groupClause)
+	if (!root->processed_groupClause)
 	{
 		/* Not grouping */
 		rows = 1;
@@ -6242,8 +6364,6 @@ is_shippable_grouping_target(PlannerInfo *root, RelOptInfo *grouped_rel, SpdFdwP
 			 */
 			if (groupby_cursor == before_listnum)
 			{
-				int			target_num;
-
 				if (spd_tlist_member(expr, compress_child_tlist, &target_num))
 					fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, target_num);
 			}
@@ -6295,13 +6415,13 @@ is_shippable_grouping_target(PlannerInfo *root, RelOptInfo *grouped_rel, SpdFdwP
 				 */
 				foreach(l, aggvars)
 				{
-					Expr	   *expr = (Expr *) lfirst(l);
+					Expr	   *aggvar = (Expr *) lfirst(l);
 
-					if (IsA(expr, Aggref))
+					if (IsA(aggvar, Aggref))
 					{
 						int			before_listnum = list_length(compress_child_tlist);
 
-						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false, false, false, fpinfo);
+						tlist = spd_add_to_flat_tlist(tlist, aggvar, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false, false, false, fpinfo);
 						groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 					}
 				}
@@ -6446,11 +6566,11 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				agg_vars = pull_var_clause((Node *) rinfo->clause, PVC_INCLUDE_AGGREGATES);
 				foreach(agg_lc, agg_vars)
 				{
-					Expr	   *expr = (Expr *) lfirst(agg_lc);
+					Expr	   *agg_var = (Expr *) lfirst(agg_lc);
 
-					if (IsA(expr, Aggref))
+					if (IsA(agg_var, Aggref))
 					{
-						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist,
+						tlist = spd_add_to_flat_tlist(tlist, agg_var, &mapping_tlist,
 													  &compress_child_tlist, 0, &upper_targets, false, true, false, fpinfo);
 					}
 				}
@@ -7017,7 +7137,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 
 		es->indent++;
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			int			idx = pChildInfo->index_threadinfo;
 
@@ -7032,7 +7152,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 
 			fdwroutine->ExplainForeignScan(((ForeignScanThreadInfo *) node->spd_fsstate)[idx].fsstate, es);
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * If ExplainForeignScan fails in child FDW, then set
@@ -7044,7 +7164,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 		es->indent--;
 	}
 }
@@ -7106,11 +7226,11 @@ spd_ExplainForeignModify(ModifyTableState *mtstate,
 
 		es->indent++;
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			fdwroutine->ExplainForeignModify(child_mtstate, child_mtstate->resultRelInfo, pChildInfo->fdw_private, subplan_index, es);
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * If ExplainForeignModify fails in child FDW, then set
@@ -7122,7 +7242,7 @@ spd_ExplainForeignModify(ModifyTableState *mtstate,
 			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 		es->indent--;
 	}
 }
@@ -7171,13 +7291,13 @@ spd_ExplainDirectModify(ForeignScanState *node,
 
 		es->indent++;
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			int			idx = pChildInfo->index_threadinfo;
 
 			fdwroutine->ExplainDirectModify(((ForeignScanThreadInfo *) node->spd_fsstate)[idx].fsstate, es);
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * If ExplainDirectModify fails in child FDW, then set
@@ -7189,7 +7309,7 @@ spd_ExplainDirectModify(ForeignScanState *node,
 			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 		es->indent--;
 	}
 }
@@ -7235,7 +7355,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		}
 
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			Oid			oid_server;
 			ForeignServer *fs;
@@ -7311,7 +7431,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 				}
 			}
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * If fail to create foreign paths, then set
@@ -7330,7 +7450,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 	}
 
 	/*
@@ -7688,7 +7808,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 		else
 			pChildInfo->pseudo_agg = false;
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			ForeignServer *fs;
 			ForeignDataWrapper *fdw;
@@ -7801,7 +7921,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
 				 * target list, we should use non aggref pathtarget to apply.
 				 */
-				if (IS_UPPER_REL(baserel) && root->parse->groupClause != NULL)
+				if (IS_UPPER_REL(baserel) && root->processed_groupClause != NULL)
 				{
 					apply_pathtarget_labeling_to_tlist(temptlist, fdw_private->rinfo.outerrel->reltarget);
 				}
@@ -7850,7 +7970,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 																outer_plan);
 			}
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * If fail to get foreign plan, then set
@@ -7868,7 +7988,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 
 		/* For aggregation and can not pushdown fdw's */
 		if (pChildInfo->pseudo_agg)
@@ -9729,7 +9849,7 @@ spd_execute_local_query(char *query, pthread_rwlock_t * scan_mutex)
 {
 	int			ret;
 
-	SPD_WRITE_LOCK_TRY(scan_mutex);
+	SPD_WRITE_LOCK_TRY(scan_mutex, _spd_write_lock_try);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -9738,7 +9858,7 @@ spd_execute_local_query(char *query, pthread_rwlock_t * scan_mutex)
 	if (ret != SPI_OK_UTILITY)
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
 	SPI_finish();
-	SPD_RWUNLOCK_CATCH(scan_mutex);
+	SPD_RWUNLOCK_CATCH(scan_mutex, _spd_write_lock_try);
 }
 
 /**
@@ -9768,7 +9888,7 @@ spd_insert_into_temp_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwP
 	Datum	   *values = palloc0(sizeof(Datum));
 	char	   *nulls = palloc0(sizeof(char));
 
-	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex, _spd_write_lock_try);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
@@ -9879,7 +9999,7 @@ spd_insert_into_temp_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwP
 
 	SPI_finish();
 
-	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex, _spd_write_lock_try);
 }
 
 /**
@@ -10021,7 +10141,7 @@ spd_execute_select_temp_table(SpdFdwPrivate * fdw_private, char *sql)
 	ListCell   *lc;
 	ErrorContextCallback errcallback;
 
-	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex, _spd_write_lock_try);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
@@ -10127,7 +10247,7 @@ spd_execute_select_temp_table(SpdFdwPrivate * fdw_private, char *sql)
 	MemoryContextSwitchTo(oldcontext);
 	SPI_finish();
 end:;
-	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex, _spd_write_lock_try);
 }
 
 /**
@@ -12132,16 +12252,16 @@ spd_BeginDirectModifyChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChi
 {
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 
-	SPD_READ_LOCK_TRY(scan_mutex);
+	SPD_READ_LOCK_TRY(scan_mutex, _spd_read_lock_try);
 
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0)
 		{
-			SPD_LOCK_TRY(&postgres_fdw_mutex);
+			SPD_LOCK_TRY(&postgres_fdw_mutex, _spd_lock_try);
 			fssthrdInfo->fdwroutine->BeginDirectModify(fssthrdInfo->fsstate,
 													   fssthrdInfo->eflags);
-			SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+			SPD_UNLOCK_CATCH(&postgres_fdw_mutex, _spd_lock_try);
 		}
 		else
 		{
@@ -12149,13 +12269,13 @@ spd_BeginDirectModifyChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChi
 													   fssthrdInfo->eflags);
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 
-	SPD_RWUNLOCK_CATCH(scan_mutex);
+	SPD_RWUNLOCK_CATCH(scan_mutex, _spd_read_lock_try);
 }
 
 /**
@@ -12182,7 +12302,7 @@ spd_IterateDirectModifyChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo 
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
 	/* Start Iterate Direct Modify loop. */
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		while (1)
 		{
@@ -12208,7 +12328,7 @@ spd_IterateDirectModifyChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo 
 				MemoryContextSwitchTo(tuplectx[ctx_idx]);
 			}
 
-			SPD_WRITE_LOCK_TRY(scan_mutex);
+			SPD_WRITE_LOCK_TRY(scan_mutex, _spd_write_lock_try);
 
 			/*
 			 * Make child node use per-tuple memory context created by
@@ -12224,9 +12344,9 @@ spd_IterateDirectModifyChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo 
 				 */
 				if (strcmp(fssthrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
+					SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 					slot = fssthrdInfo->fdwroutine->IterateDirectModify(fssthrdInfo->fsstate);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 				}
 				else
 				{
@@ -12234,15 +12354,15 @@ spd_IterateDirectModifyChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo 
 					 * Need mutex to avoid concurrency conflict between Scan (including
 					 * Main query and Subquery if have) and Modify threads.
 					 */
-					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex, _spd_lock_try);
 					slot = fssthrdInfo->fdwroutine->IterateDirectModify(fssthrdInfo->fsstate);
-					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex, _spd_lock_try);
 				}
 			}
 			else
 				slot = fssthrdInfo->fdwroutine->IterateDirectModify(fssthrdInfo->fsstate);
 
-			SPD_RWUNLOCK_CATCH(scan_mutex);
+			SPD_RWUNLOCK_CATCH(scan_mutex, _spd_write_lock_try);
 			deepcopy = true;
 
 			/*
@@ -12299,7 +12419,7 @@ spd_IterateDirectModifyChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo 
 #endif
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 
@@ -12315,7 +12435,7 @@ spd_IterateDirectModifyChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo 
 		elog(DEBUG1, "Thread error occurred during IterateDirectModify(). %s:%d",
 			 __FILE__, __LINE__);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 }
 
 /**
@@ -12330,7 +12450,7 @@ static void
 spd_EndDirectModifyChild(ForeignScanThreadInfo * fssthrdInfo,
 						 pthread_rwlock_t * scan_mutex, SpdTimeMeasureInfo *tm_info)
 {
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		while (1)
 		{
@@ -12338,10 +12458,10 @@ spd_EndDirectModifyChild(ForeignScanThreadInfo * fssthrdInfo,
 			{
 				/* End of the Direct Modify */
 				fssthrdInfo->state = SPD_FS_STATE_END;
-				SPD_READ_LOCK_TRY(scan_mutex);
+				SPD_READ_LOCK_TRY(scan_mutex, _spd_read_lock_try);
 				fssthrdInfo->fdwroutine->EndDirectModify(fssthrdInfo->fsstate);
 
-				SPD_RWUNLOCK_CATCH(scan_mutex);
+				SPD_RWUNLOCK_CATCH(scan_mutex, _spd_read_lock_try);
 				fssthrdInfo->requestEndScan = false;
 				break;
 			}
@@ -12351,13 +12471,13 @@ spd_EndDirectModifyChild(ForeignScanThreadInfo * fssthrdInfo,
 			spd_tm_accum_diff(tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_END_REQUEST);
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 		elog(DEBUG1, "Thread error occurred during EndDirectModify(). %s:%d",
 			 __FILE__, __LINE__);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 }
 
 /**
@@ -12464,25 +12584,25 @@ THREAD_EXIT:
 		else
 			spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			if (fssthrdInfo->requestEndScan)
 			{
 				/* End of the Direct Modify */
-				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex, _spd_read_lock_try);
 				fssthrdInfo->fdwroutine->EndDirectModify(fssthrdInfo->fsstate);
-				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex, _spd_read_lock_try);
 				fssthrdInfo->requestEndScan = false;
 			}
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			/*
 			 * Can not end direct modify normally because of previous error. Ignore it.
 			 * The main error has been processed and handled by main thread.
 			 */
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 	}
 
 	free_guc_variables_child_thread();
@@ -13049,7 +13169,7 @@ spd_AddForeignUpdateTargetsChild(PlannerInfo *root, Index relid,
 		}
 
 		/* Do child node's AddForeignUpdateTargets. */
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			if (childinfo[i].fdwroutine->AddForeignUpdateTargets != NULL)
 			{
@@ -13098,7 +13218,7 @@ spd_AddForeignUpdateTargetsChild(PlannerInfo *root, Index relid,
 			if (child_target_relation != NULL)
 				RelationClose(child_target_relation);
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			childinfo[i].root = root;
 			childinfo[i].child_node_status = ServerStatusDead;
@@ -13118,7 +13238,7 @@ spd_AddForeignUpdateTargetsChild(PlannerInfo *root, Index relid,
 			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 	}
 
 	if (!isInsert && node_incr == 0)
@@ -13229,7 +13349,6 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 		ChildInfo *pChildInfo = &childinfo[i];
 		ForeignServer *fs;
 		ForeignDataWrapper *fdw;
-		ListCell   *lc;
 		Relation	rel;
 		int			refcnt;
 
@@ -13286,7 +13405,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 		rel = RelationIdGetRelation(pChildInfo->oid);
 		refcnt = rel->rd_refcnt;
 
-		PG_TRY();
+		PG_TRY(_try_postfix);
 		{
 			if (operation == CMD_INSERT)
 			{
@@ -13300,7 +13419,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 				}
 				else
 				{
-					ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
+					fdw = GetForeignDataWrapper(fs->fdwid);
 
 					/* fdw does not support Modify => skip */
 					elog(WARNING, "%s is ignored as an insert target because it does not support modification", fdw->fdwname);
@@ -13318,7 +13437,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 				}
 				else
 				{
-					ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
+					fdw = GetForeignDataWrapper(fs->fdwid);
 
 					/* fdw does not support Modify => skip */
 					elog(WARNING, "%s will be skipped because it does not support modification", fdw->fdwname);
@@ -13327,7 +13446,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 				}
 			}
 		}
-		PG_CATCH();
+		PG_CATCH(_try_postfix);
 		{
 			if (operation == CMD_INSERT)
 			{
@@ -13351,7 +13470,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 				FlushErrorState();
 			}
 		}
-		PG_END_TRY();
+		PG_END_TRY(_try_postfix);
 
 		if (refcnt != rel->rd_refcnt)
 			table_close(rel, NoLock);
@@ -13543,8 +13662,8 @@ spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 	MemoryContext oldcontext = CurrentMemoryContext;
 
 	mtThrdInfo->state = SPD_MDF_STATE_BEGIN;
-	SPD_READ_LOCK_TRY(modify_mutex);
-	PG_TRY();
+	SPD_READ_LOCK_TRY(modify_mutex, _spd_read_lock_try);
+	PG_TRY(begin_foreign_child);
 	{
 		/*
 		 * Multiple sessions of oracle_fdw can have the same connection. It causes error when concurrency
@@ -13552,13 +13671,13 @@ spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 		 */
 		if (strcmp(mtThrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 		{
-			SPD_LOCK_TRY(&oracle_fdw_mutex);
+			SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 			mtThrdInfo->fdwroutine->BeginForeignModify(mtThrdInfo->mtstate,
 													mtThrdInfo->mtstate->resultRelInfo,
 													pChildInfo->fdw_private,
 													mtThrdInfo->subplan_index,
 													mtThrdInfo->eflags);
-			SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+			SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 		}
 		else
 		{
@@ -13577,13 +13696,13 @@ spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 			}
 			else
 			{
-				SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+				SPD_LOCK_TRY(&child_node_info->scan_modify_mutex, _spd_lock_try);
 				mtThrdInfo->fdwroutine->BeginForeignModify(mtThrdInfo->mtstate,
 														mtThrdInfo->mtstate->resultRelInfo,
 														pChildInfo->fdw_private,
 														mtThrdInfo->subplan_index,
 														mtThrdInfo->eflags);
-				SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+				SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex, _spd_lock_try);
 			}
 		}
 
@@ -13594,7 +13713,7 @@ spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 			*socketThreadInfos = lappend(*socketThreadInfos, *socketThreadInfo);
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(begin_foreign_child);
 	{
 		if (mtThrdInfo->mtstate->operation == CMD_INSERT &&
 			!throwCandidateError)
@@ -13620,9 +13739,9 @@ spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 
 		MemoryContextSwitchTo(oldcontext);
 	}
-	PG_END_TRY();
+	PG_END_TRY(begin_foreign_child);
 
-	SPD_RWUNLOCK_CATCH(modify_mutex);
+	SPD_RWUNLOCK_CATCH(modify_mutex, _spd_read_lock_try);
 }
 
 /**
@@ -13648,7 +13767,7 @@ spd_ExecForeignUpdateChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 	mtThrdInfo->state = SPD_MDF_STATE_EXEC;
 
 	/* Start ExecForeignUpdate loop. */
-	PG_TRY();
+	PG_TRY(foreign_update_child_loop);
 	{
 		while (!force_end_child_threads_flag)
 		{
@@ -13670,9 +13789,9 @@ spd_ExecForeignUpdateChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 				 */
 				if (strcmp(mtThrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
+					SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 					fdwroutine->ExecForeignUpdate(mtThrdInfo->mtstate->ps.state, mtThrdInfo->mtstate->resultRelInfo, slot, planSlot);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 				}
 				else
 				{
@@ -13680,9 +13799,9 @@ spd_ExecForeignUpdateChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 					* Need mutex to avoid concurrency conflict between Scan (including
 					* Main query and Subquery if have) and Modify threads.
 					*/
-					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex, _spd_lock_try);
 					fdwroutine->ExecForeignUpdate(mtThrdInfo->mtstate->ps.state, mtThrdInfo->mtstate->resultRelInfo, slot, planSlot);
-					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex, _spd_lock_try);
 				}
 
 				mtThrdInfo->requestExecModify = false;
@@ -13691,7 +13810,7 @@ spd_ExecForeignUpdateChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 		}
 
 	}
-	PG_CATCH();
+	PG_CATCH(foreign_update_child_loop);
 	{
 		mtThrdInfo->state = SPD_MDF_STATE_ERROR_INIT;
 
@@ -13699,7 +13818,7 @@ spd_ExecForeignUpdateChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 			 __FILE__, __LINE__);
 		MemoryContextSwitchTo(oldcontext);
 	}
-	PG_END_TRY();
+	PG_END_TRY(foreign_update_child_loop);
 }
 
 /**
@@ -13734,7 +13853,7 @@ spd_ExecForeignDeleteChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 	mtThrdInfo->state = SPD_MDF_STATE_EXEC;
 
 	/* Start ExecForeignUpdate loop. */
-	PG_TRY();
+	PG_TRY(foreign_delete_child_loop);
 	{
 		while (!force_end_child_threads_flag)
 		{
@@ -13752,9 +13871,9 @@ spd_ExecForeignDeleteChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 				 */
 				if (strcmp(mtThrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
+					SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 					fdwroutine->ExecForeignDelete(mtThrdInfo->mtstate->ps.state, mtThrdInfo->mtstate->resultRelInfo, childslot, planSlot);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 				}
 				else
 				{
@@ -13762,9 +13881,9 @@ spd_ExecForeignDeleteChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 					* Need mutex to avoid concurrency conflict between Scan (including
 					* Main query and Subquery if have) and Modify threads.
 					*/
-					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex, _spd_lock_try);
 					fdwroutine->ExecForeignDelete(mtThrdInfo->mtstate->ps.state, mtThrdInfo->mtstate->resultRelInfo, childslot, planSlot);
-					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex, _spd_lock_try);
 				}
 
 				mtThrdInfo->requestExecModify = false;
@@ -13773,7 +13892,7 @@ spd_ExecForeignDeleteChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 		}
 
 	}
-	PG_CATCH();
+	PG_CATCH(foreign_delete_child_loop);
 	{
 		mtThrdInfo->state = SPD_MDF_STATE_ERROR_INIT;
 
@@ -13781,7 +13900,7 @@ spd_ExecForeignDeleteChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 			 __FILE__, __LINE__);
 		MemoryContextSwitchTo(oldcontext);
 	}
-	PG_END_TRY();
+	PG_END_TRY(foreign_delete_child_loop);
 
 	ExecDropSingleTupleTableSlot(childslot);
 }
@@ -13803,7 +13922,7 @@ spd_ExecForeignBatchInsertChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pCh
 
 	mtThrdInfo->state = SPD_MDF_STATE_EXEC;
 	/* Start ExecForeignBatchInsert loop. */
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		while (!force_end_child_threads_flag)
 		{
@@ -13891,7 +14010,7 @@ spd_ExecForeignBatchInsertChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pCh
 		/* Tell main thread that ExecForeignBatchInsert done */
 		mtThrdInfo->requestExecModify = false;
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		mtThrdInfo->state = SPD_MDF_STATE_ERROR_INIT;
 
@@ -13902,7 +14021,7 @@ spd_ExecForeignBatchInsertChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pCh
 		/* Free allocated memory in temp context */
 		MemoryContextReset(mtThrdInfo->temp_cxt);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 }
 
 /**
@@ -13922,7 +14041,7 @@ spd_ExecForeignInsertChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 
 	mtThrdInfo->state = SPD_MDF_STATE_EXEC;
 	/* Start ExecForeignInsert loop. */
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		while (!force_end_child_threads_flag)
 		{
@@ -13995,7 +14114,7 @@ spd_ExecForeignInsertChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 		/* Tell main thread that ExecForeignBatchInsert done */
 		mtThrdInfo->requestExecModify = false;
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		mtThrdInfo->state = SPD_MDF_STATE_ERROR_INIT;
 
@@ -14006,7 +14125,7 @@ spd_ExecForeignInsertChildLoop(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildIn
 		/* Free allocated memory in temp context */
 		MemoryContextReset(mtThrdInfo->temp_cxt);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 }
 
 /**
@@ -14025,7 +14144,7 @@ spd_EndForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 {
 	MemoryContext oldcontext = CurrentMemoryContext;
 
-	PG_TRY();
+	PG_TRY(_try_postfix);
 	{
 		while (!force_end_child_threads_flag)
 		{
@@ -14035,18 +14154,18 @@ spd_EndForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 				mtThrdInfo->state = SPD_MDF_STATE_END;
 				if (strcmp(mtThrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
+					SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 					mtThrdInfo->fdwroutine->EndForeignModify(mtThrdInfo->mtstate->ps.state,
 															mtThrdInfo->mtstate->resultRelInfo);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 				}
 				else
 				{
-					SPD_READ_LOCK_TRY(modify_mutex);
+					SPD_READ_LOCK_TRY(modify_mutex, _spd_read_lock_try);
 					mtThrdInfo->fdwroutine->EndForeignModify(mtThrdInfo->mtstate->ps.state,
 															mtThrdInfo->mtstate->resultRelInfo);
 
-					SPD_RWUNLOCK_CATCH(modify_mutex);
+					SPD_RWUNLOCK_CATCH(modify_mutex, _spd_read_lock_try);
 				}
 				mtThrdInfo->requestEndModify = false;
 				break;
@@ -14055,14 +14174,14 @@ spd_EndForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 			pthread_yield();
 		}
 	}
-	PG_CATCH();
+	PG_CATCH(_try_postfix);
 	{
 		mtThrdInfo->state = SPD_MDF_STATE_ERROR_INIT;
 		elog(DEBUG1, "Thread error occurred during EndForeignModify(). %s:%d",
 			 __FILE__, __LINE__);
 		MemoryContextSwitchTo(oldcontext);
 	}
-	PG_END_TRY();
+	PG_END_TRY(_try_postfix);
 
 }
 
@@ -14253,36 +14372,36 @@ THREAD_EXIT:
 	else
 	{
 		/* When there is any error and ForeignModify of child thead has not been executed, try to call it here */
-		PG_TRY();
+		PG_TRY(foreign_modify_thread);
 		{
 			if (mtThrdInfo->requestEndModify)
 			{
 				if (strcmp(mtThrdInfo->fdw->fdwname, ORACLE_FDW_NAME) == 0)
 				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
+					SPD_LOCK_TRY(&oracle_fdw_mutex, _spd_lock_try);
 					mtThrdInfo->fdwroutine->EndForeignModify(mtThrdInfo->mtstate->ps.state,
 															mtThrdInfo->mtstate->resultRelInfo);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					SPD_UNLOCK_CATCH(&oracle_fdw_mutex, _spd_lock_try);
 				}
 				else
 				{
-					SPD_READ_LOCK_TRY(&fdw_private->modify_mutex);
+					SPD_READ_LOCK_TRY(&fdw_private->modify_mutex, _spd_read_lock_try);
 					mtThrdInfo->fdwroutine->EndForeignModify(mtThrdInfo->mtstate->ps.state,
 															mtThrdInfo->mtstate->resultRelInfo);
 
-					SPD_RWUNLOCK_CATCH(&fdw_private->modify_mutex);
+					SPD_RWUNLOCK_CATCH(&fdw_private->modify_mutex, _spd_read_lock_try);
 				}
 				mtThrdInfo->requestEndModify = false;
 			}
 		}
-		PG_CATCH();
+		PG_CATCH(foreign_modify_thread);
 		{
 			/*
 			 * Can not end foreign modify normally because of previous error. Ignore it.
 			 * The main error has been processed and handled by main thread.
 			 */
 		}
-		PG_END_TRY();
+		PG_END_TRY(foreign_modify_thread);
 	}
 
 	free_guc_variables_child_thread();
@@ -16035,8 +16154,8 @@ spd_update_base_rel_target(ChildInfo *pChildInfo, PlannerInfo *root, RelOptInfo 
 {
 	RelOptInfo *baserel_child = (pChildInfo->joinrel) ? pChildInfo->joinrel : pChildInfo->baserel;
 
-	if (!input_rel->reloptkind == RELOPT_BASEREL &&
-		!input_rel->reloptkind == RELOPT_JOINREL)
+	if (!(input_rel->reloptkind == RELOPT_BASEREL) &&
+		!(input_rel->reloptkind == RELOPT_JOINREL))
 		return;
 
 	/*
@@ -16141,3 +16260,4 @@ spd_get_batch_size_option(Relation rel)
 
 	return batch_size;
 }
+

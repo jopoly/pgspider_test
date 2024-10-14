@@ -403,6 +403,7 @@ spd_socket_server_thread(void *arg)
 		foreach(lc, client_fds)
 		{
 			ReadBufferClientSocket *read_buffer_client = (ReadBufferClientSocket *) lfirst(lc);
+			ListCell 	   *lc2;
 
 			/* Incoming data on client socket */
 			if (!FD_ISSET(read_buffer_client->client_socket, &working_fds))
@@ -430,9 +431,9 @@ spd_socket_server_thread(void *arg)
 			matched_child_thread = false;
 
 			/* Set socket_id = connected_socket for child thread of ExecuteBatchInsert pgspider_fdw */
-			foreach(lc, socketInfo->socketThreadInfos)
+			foreach(lc2, socketInfo->socketThreadInfos)
 			{
-				SocketThreadInfo *socketThreadInfo = (SocketThreadInfo *) lfirst(lc);
+				SocketThreadInfo *socketThreadInfo = (SocketThreadInfo *) lfirst(lc2);
 				pthread_mutex_lock(&socketThreadInfo->socket_thread_info_mutex);
 				if (socketThreadInfo->serveroid == serverID && socketThreadInfo->tableoid == tableID)
 				{

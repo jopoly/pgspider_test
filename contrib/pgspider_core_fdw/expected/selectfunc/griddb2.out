@@ -3233,7 +3233,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152009
-  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=92)
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=172.17.0.3:10001, partition=92)
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
 }
 --
@@ -3390,7 +3390,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 199:
@@ -3631,7 +3631,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 211:
@@ -3652,7 +3652,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 213:
@@ -3673,7 +3673,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 215:
@@ -3694,7 +3694,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 217:
@@ -3715,7 +3715,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 219:
@@ -3736,7 +3736,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --Testcase 221:
@@ -3757,7 +3757,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=92)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=92)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
 --
@@ -5278,7 +5278,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=127.0.0.1:10001, partition=92)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=172.17.0.3:10001, partition=92)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ
 }
 --rows for sampling does not exist => return rows that contains interpolated values.
@@ -5323,7 +5323,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=127.0.0.1:10001, partition=92)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=172.17.0.3:10001, partition=92)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ
 }
 --In linearly interpolating the value of the previous and next rows, if one of the values does not exist => the sampling row will not be returned
@@ -5345,7 +5345,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=92)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=172.17.0.3:10001, partition=92)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
 }
 --if the first parameter is not set, * will be added as the first parameter.
@@ -5506,7 +5506,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 150014
-  [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=127.0.0.1:10001, partition=92)
+  [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=172.17.0.3:10001, partition=92)
   [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS
 }
 --

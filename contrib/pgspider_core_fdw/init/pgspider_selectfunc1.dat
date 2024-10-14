@@ -124,8 +124,8 @@ CREATE FOREIGN TABLE s81mysql__mysql_svr__0 (id int, c1 json, c2 int, c3 text) S
 CREATE FOREIGN TABLE s91mysql__mysql_svr__0 (id int, c1 json) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's91');
 
 -- griddb_fdw
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw  OPTIONS (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster');
-CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username 'admin', password 'testadmin');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw  OPTIONS (notification_member '127.0.0.1:10001', clustername 'dockerGridDB');
+CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username 'admin', password 'admin');
 CREATE FOREIGN TABLE s3griddb__griddb_svr__0 (
        date timestamp without time zone,
        value1 integer,

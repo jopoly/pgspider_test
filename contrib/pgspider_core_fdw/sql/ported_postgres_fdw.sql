@@ -638,6 +638,7 @@ SELECT c1, to_tsvector('custom_search'::regconfig, c3) FROM ft1
 WHERE c1 = 642 AND length(to_tsvector('custom_search'::regconfig, c3)) > 0;
 
 -- but if it's in a shippable extension, it can be shipped
+--Testcase 1398:
 ALTER EXTENSION postgres_fdw ADD TEXT SEARCH CONFIGURATION public.custom_search;
 -- however, that doesn't flush the shippability cache, so do a quick reconnect
 \c -
@@ -1035,30 +1036,41 @@ ALTER VIEW v4 OWNER TO regress_view_owner;
 -- ====================================================================
 -- Check that userid to use when querying the remote table is correctly
 -- propagated into foreign rels present in subqueries under an UNION ALL
--- Note: User is used at the planning phase is different from the one at the exection phase
--- Need to investigate to find solution for this issue. Temporary comment out this test.
 -- ====================================================================
--- CREATE ROLE regress_view_owner_another;
--- ALTER VIEW v4 OWNER TO regress_view_owner_another;
--- GRANT SELECT ON ft4 TO regress_view_owner_another;
--- GRANT SELECT ON ft4__postgres_srv__0 TO regress_view_owner_another;
--- ALTER FOREIGN TABLE ft4__postgres_srv__0 OPTIONS (ADD use_remote_estimate 'true');
+--Testcase 1399:
+CREATE ROLE regress_view_owner_another;
+--Testcase 1400:
+ALTER VIEW v4 OWNER TO regress_view_owner_another;
+GRANT SELECT ON ft4 TO regress_view_owner_another;
+GRANT SELECT ON ft4__postgres_srv__0 TO regress_view_owner_another;
+--Testcase 1401:
+ALTER FOREIGN TABLE ft4__postgres_srv__0 OPTIONS (ADD use_remote_estimate 'true');
 -- The following should query the remote backing table of ft4 as user
 -- regress_view_owner_another, the view owner, though it fails as expected
 -- due to the lack of a user mapping for that user.
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM v4;
+--Testcase 1402:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM v4;
 -- Likewise, but with the query under an UNION ALL
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM v4 UNION ALL SELECT * FROM v4);
--- SELECT * FROM (SELECT * FROM v4 UNION ALL SELECT * FROM v4);
+--Testcase 1403:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM v4 UNION ALL SELECT * FROM v4);
 -- Should not get that error once a user mapping is created
--- CREATE USER MAPPING FOR regress_view_owner_another SERVER postgres_srv OPTIONS (password_required 'false');
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM v4;
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM v4 UNION ALL SELECT * FROM v4);
--- SELECT * FROM (SELECT * FROM v4 UNION ALL SELECT * FROM v4);
--- DROP USER MAPPING FOR regress_view_owner_another SERVER postgres_srv;
--- DROP OWNED BY regress_view_owner_another;
--- DROP ROLE regress_view_owner_another;
--- ALTER FOREIGN TABLE ft4__postgres_srv__0 OPTIONS (SET use_remote_estimate 'false');
+-- It is required to add `user` option for USER MAPPING, so that postgres_fdw can connect to remote server.
+-- If `user` is not set, by default, postgres_fdw gets current user and uses it to connect to remote server,
+-- which causes error because remote server may not have the same user.
+--Testcase 1404:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER postgres_srv OPTIONS (user 'postgres', password_required 'false');
+--Testcase 1405:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM v4;
+--Testcase 1406:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM v4 UNION ALL SELECT * FROM v4);
+--Testcase 1407:
+DROP USER MAPPING FOR regress_view_owner_another SERVER postgres_srv;
+--Testcase 1408:
+DROP OWNED BY regress_view_owner_another;
+--Testcase 1409:
+DROP ROLE regress_view_owner_another;
+--Testcase 1410:
+ALTER FOREIGN TABLE ft4__postgres_srv__0 OPTIONS (SET use_remote_estimate 'false');
 
 -- cleanup
 --Testcase 235:
@@ -1109,12 +1121,14 @@ select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
 select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
 
 -- Aggregates in subquery are pushed down.
+--Testcase 1411:
 set enable_incremental_sort = off;
 --Testcase 247:
 explain (verbose, costs off)
 select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, sqrt(c1) order by 1, 2) x;
 --Testcase 248:
 select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, sqrt(c1) order by 1, 2) x;
+--Testcase 1412:
 reset enable_incremental_sort;
 
 -- Aggregate is still pushed down by taking unshippable expression out
@@ -1390,12 +1404,14 @@ alter extension pgspider_core_fdw add operator public.>^(int, int);
 alter server postgres_srv options (set extensions 'postgres_fdw');
 
 -- PGSpider can not push down this operator
+--Testcase 1413:
 alter server postgres_srv options (add fdw_tuple_cost '0.5');
 --Testcase 319:
 explain (verbose, costs off)
 select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
 --Testcase 320:
 select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
+--Testcase 1414:
 alter server postgres_srv options (drop fdw_tuple_cost);
 
 -- This should not be pushed too.
@@ -1765,14 +1781,18 @@ SELECT ftx.x1, ft2.c2, ftx FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8), ft2
 --Testcase 435:
 SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
 ANALYZE ft1; -- ERROR
+--Testcase 1415:
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
+--Testcase 1416:
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
 
 -- ===================================================================
 -- local type can be different from remote type in some cases,
 -- in particular if similarly-named operators do equivalent things
 -- ===================================================================
+--Testcase 1417:
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE text;
+--Testcase 1418:
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE text;
 --Testcase 1198:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -1892,6 +1912,7 @@ COMMIT;
 
 -- test for timeout handler
 -- enable timeout
+--Testcase 1419:
 set statement_timeout = 1000;
 --Testcase 1179:
 BEGIN;
@@ -1917,6 +1938,7 @@ FETCH 1000 FROM c1; -- should fail
 FETCH c1; -- should fail
 COMMIT;
 -- disable timeout
+--Testcase 1420:
 set statement_timeout = 0;
 
 -- ===================================================================
@@ -2346,7 +2368,9 @@ CREATE TABLE parent_tbl (a int, b int, __spd_url text) PARTITION BY RANGE(a);
 --Testcase 569:
 ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
 -- Detach and re-attach once, to stress the concurrent detach case.
+--Testcase 1421:
 ALTER TABLE parent_tbl DETACH PARTITION foreign_tbl CONCURRENTLY;
+--Testcase 1422:
 ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
 
 --Testcase 570:
@@ -2382,6 +2406,7 @@ UPDATE rw_view SET b = b + 15; -- ok
 SELECT * FROM foreign_tbl;
 
 -- We don't allow batch insert when there are any WCO constraints
+--Testcase 1423:
 ALTER SERVER postgres_srv OPTIONS (ADD batch_size '10');
 --Testcase 1268:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2390,6 +2415,7 @@ INSERT INTO rw_view VALUES (0, 15), (0, 5);
 INSERT INTO rw_view VALUES (0, 15), (0, 5); -- should fail
 --Testcase 1270:
 SELECT * FROM foreign_tbl;
+--Testcase 1424:
 ALTER SERVER postgres_srv OPTIONS (DROP batch_size);
 
 --Testcase 572:
@@ -2410,10 +2436,12 @@ DROP FUNCTION row_before_insupd_trigfunc;
 CREATE TABLE parent_tbl (a int, b text, c numeric) PARTITION BY RANGE(a);
 --Testcase 1272:
 CREATE TABLE sub_parent (c numeric, a int, b text) PARTITION BY RANGE(a);
+--Testcase 1425:
 ALTER TABLE parent_tbl ATTACH PARTITION sub_parent FOR VALUES FROM (1) TO (10);
 --Testcase 1273:
 CREATE FOREIGN TABLE child_foreign (b text, c numeric, a int)
   SERVER postgres_srv OPTIONS (table_name 'child_local');
+--Testcase 1426:
 ALTER TABLE sub_parent ATTACH PARTITION child_foreign FOR VALUES FROM (1) TO (10);
 --Testcase 1274:
 CREATE VIEW rw_view AS SELECT * FROM parent_tbl WHERE a < 5 WITH CHECK OPTION;
@@ -2507,6 +2535,7 @@ select * from grem1__postgres_srv__0;
 delete from grem1__postgres_srv__0;
 
 -- test batch insert
+--Testcase 1427:
 alter server postgres_srv options (add batch_size '10');
 --Testcase 1212:
 explain (verbose, costs off)
@@ -2546,6 +2575,7 @@ drop table tab_batch_local;
 drop table tab_batch_sharded;
 --Testcase 1293:
 SELECT dblink_exec('drop table tab_batch_sharded_p1_remote;');
+--Testcase 1428:
 alter server postgres_srv options (drop batch_size);
 
 -- ===================================================================
@@ -3342,7 +3372,9 @@ create foreign table remp2 (b text, a int check (a in (2)), __spd_url text)
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2)))
   server postgres_srv options (table_name 'loct2_3');
 
+--Testcase 1429:
 alter table itrtest attach partition remp1 for values in (1);
+--Testcase 1430:
 alter table itrtest attach partition remp2 for values in (2);
 
 --Testcase 827:
@@ -3448,6 +3480,7 @@ create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text)
 create table locp (a int check (a in (2)), b text);
 --Testcase 867:
 alter table utrtest attach partition remp for values in (1);
+--Testcase 1431:
 alter table utrtest attach partition locp for values in (2);
 
 --Testcase 868:
@@ -3576,6 +3609,7 @@ create foreign table remp (a int check (a in (3)), b text)
 create foreign table remp__postgres_srv__0 (a int check (a in (3)), b text)
   server postgres_srv options (table_name 'loct_2');
 
+--Testcase 1432:
 alter table utrtest attach partition remp for values in (3);
 --Testcase 904:
 insert into utrtest values (2, 'qux');
@@ -3617,7 +3651,9 @@ create foreign table remp2 (b text, a int check (a in (2)))
 --Testcase 915:
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2)))
   server postgres_srv options (table_name 'loct2_4');
+--Testcase 1433:
 alter table ctrtest attach partition remp1 for values in (1);
+--Testcase 1434:
 alter table ctrtest attach partition remp2 for values in (2);
 
 copy ctrtest from stdin;
@@ -3644,6 +3680,7 @@ select tableoid::regclass, * FROM remp1;
 delete from ctrtest;
 
 -- Test copy tuple routing with the batch_size option enabled
+--Testcase 1435:
 alter server postgres_srv options (add batch_size '2');
 
 copy ctrtest from stdin;
@@ -3665,6 +3702,7 @@ select tableoid::regclass, * FROM remp2;
 --Testcase 1304:
 delete from ctrtest;
 
+--Testcase 1436:
 alter server postgres_srv options (drop batch_size);
 
 --Testcase 920:
@@ -3703,6 +3741,7 @@ delete from rem2;
 -- Test check constraints
 --Testcase 930:
 SELECT dblink_exec('alter table loc2 add constraint loc2_f1positive check (f1 >= 0);');
+--Testcase 1437:
 alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 
 -- check constraint is enforced on the remote side, not locally
@@ -3879,6 +3918,7 @@ drop foreign table rem3;
 drop foreign table rem3__postgres_srv__0;
 
 -- Test COPY FROM with the batch_size option enabled
+--Testcase 1438:
 alter server postgres_srv options (add batch_size '2');
 
 -- Test basic functionality
@@ -3896,6 +3936,7 @@ delete from rem2;
 -- Test check constraints
 --Testcase 1308:
 SELECT dblink_exec('alter table loc2 add constraint loc2_f1positive check (f1 >= 0)');
+--Testcase 1439:
 alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 
 -- check constraint is enforced on the remote side, not locally
@@ -3910,6 +3951,7 @@ copy rem2 from stdin; -- ERROR
 --Testcase 1309:
 select * from rem2;
 
+--Testcase 1440:
 alter foreign table rem2 drop constraint rem2_f1positive;
 --Testcase 1310:
 SELECT dblink_exec('alter table loc2 drop constraint loc2_f1positive');
@@ -3961,10 +4003,15 @@ delete from rem2;
 SELECT dblink_exec('alter table loc2 drop column f1;');
 --Testcase 1321:
 SELECT dblink_exec('alter table loc2 drop column f2;');
+--Testcase 1441:
 alter foreign table rem2__postgres_srv__0 drop column f1;
+--Testcase 1442:
 alter foreign table rem2__postgres_srv__0 drop column f2;
+--Testcase 1443:
 alter foreign table rem2 drop column f1;
+--Testcase 1444:
 alter foreign table rem2 drop column f2;
+--Testcase 1445:
 alter foreign table rem2 drop column __spd_url;
 copy rem2 from stdin;
 
@@ -3977,6 +4024,7 @@ select * from rem2;
 --Testcase 1323:
 delete from rem2;
 
+--Testcase 1446:
 alter server postgres_srv options (drop batch_size);
 
 -- ===================================================================
@@ -4767,6 +4815,7 @@ SELECT COUNT(*) FROM ftable;
 
 -- Disable batch inserting into foreign tables with BEFORE ROW INSERT triggers
 -- even if the batch_size option is enabled.
+--Testcase 1447:
 ALTER FOREIGN TABLE ftable OPTIONS ( SET batch_size '10' );
 --Testcase 1219:
 CREATE TRIGGER trig_row_before BEFORE INSERT ON ftable
@@ -5448,9 +5497,13 @@ DROP VIEW my_application_name;
 -- ===================================================================
 -- test parallel commit and parallel abort
 -- ===================================================================
+--Testcase 1448:
 ALTER SERVER postgres_srv OPTIONS (ADD parallel_commit 'true');
+--Testcase 1449:
 ALTER SERVER postgres_srv OPTIONS (ADD parallel_abort 'true');
+--Testcase 1450:
 ALTER SERVER postgres_srv2 OPTIONS (ADD parallel_commit 'true');
+--Testcase 1451:
 ALTER SERVER postgres_srv2 OPTIONS (ADD parallel_abort 'true');
 
 --Testcase 1228:
@@ -5536,9 +5589,13 @@ SELECT * FROM prem1;
 --Testcase 1392:
 SELECT * FROM prem2;
 
+--Testcase 1452:
 ALTER SERVER postgres_srv OPTIONS (DROP parallel_commit);
+--Testcase 1453:
 ALTER SERVER postgres_srv OPTIONS (DROP parallel_abort);
+--Testcase 1454:
 ALTER SERVER postgres_srv2 OPTIONS (DROP parallel_commit);
+--Testcase 1455:
 ALTER SERVER postgres_srv2 OPTIONS (DROP parallel_abort);
 
 -- ===================================================================
@@ -5556,23 +5613,30 @@ CREATE FOREIGN TABLE analyze_ftable (id int, a text, b bigint)
 INSERT INTO analyze_table (SELECT x FROM generate_series(1,1000) x);
 ANALYZE analyze_table;
 
+--Testcase 1456:
 SET default_statistics_target = 10;
 ANALYZE analyze_table;
 
+--Testcase 1457:
 ALTER SERVER postgres_srv OPTIONS (analyze_sampling 'invalid');
 
+--Testcase 1458:
 ALTER SERVER postgres_srv OPTIONS (analyze_sampling 'auto');
 ANALYZE analyze_table;
 
+--Testcase 1459:
 ALTER SERVER postgres_srv OPTIONS (SET analyze_sampling 'system');
 ANALYZE analyze_table;
 
+--Testcase 1460:
 ALTER SERVER postgres_srv OPTIONS (SET analyze_sampling 'bernoulli');
 ANALYZE analyze_table;
 
+--Testcase 1461:
 ALTER SERVER postgres_srv OPTIONS (SET analyze_sampling 'random');
 ANALYZE analyze_table;
 
+--Testcase 1462:
 ALTER SERVER postgres_srv OPTIONS (SET analyze_sampling 'off');
 ANALYZE analyze_table;
 

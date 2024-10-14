@@ -586,38 +586,38 @@ extern Datum Float8GetDatum(float8 X);
 /* Macro for ensuring mutex is unlocked when error occurs */
 #define SPD_LOCK_INIT_OK 0
 #define SPD_LOCK_INIT(mutex, rtn) *rtn = (int)pthread_mutex_init(mutex, NULL);
-#define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
-#define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
+#define SPD_LOCK_TRY(mutex, ...) pthread_mutex_lock(mutex); PG_TRY(__VA_ARGS__); {
+#define SPD_UNLOCK_CATCH(mutex, ...) } PG_CATCH(__VA_ARGS__);\
 	{ \
 		pthread_mutex_unlock(mutex); \
 		PG_RE_THROW();\
-	} PG_END_TRY();\
+	} PG_END_TRY(__VA_ARGS__);\
 	pthread_mutex_unlock(mutex);
 
 #define SPD_RWLOCK_INIT_OK 0
 #define SPD_RWLOCK_INIT(mutex, rtn) *rtn = (int)pthread_rwlock_init(mutex, NULL);
-#define SPD_READ_LOCK_TRY(mutex) pthread_rwlock_rdlock(mutex);  PG_TRY(); {
-#define SPD_WRITE_LOCK_TRY(mutex) pthread_rwlock_wrlock(mutex);  PG_TRY(); {
+#define SPD_READ_LOCK_TRY(mutex, ...) pthread_rwlock_rdlock(mutex);  PG_TRY(__VA_ARGS__); {
+#define SPD_WRITE_LOCK_TRY(mutex, ...) pthread_rwlock_wrlock(mutex);  PG_TRY(__VA_ARGS__); {
 
-#define SPD_RWUNLOCK_CATCH(mutex) } PG_CATCH();\
+#define SPD_RWUNLOCK_CATCH(mutex, ...) } PG_CATCH(__VA_ARGS__);\
 	{ \
 	    pthread_rwlock_unlock(mutex);\
 		PG_RE_THROW();\
-	} PG_END_TRY();\
+	} PG_END_TRY(__VA_ARGS__);\
   	    pthread_rwlock_unlock(mutex);
 extern void skip_memory_checking(bool flag);
 extern sigset_t spd_block_handle_signals(void);
 extern sigset_t spd_set_sigmask(sigset_t new_mask);
 
 /* Macro for ensuring sigmask will reversed after error occurs */
-#define SPD_SIGBLOCK_TRY(old_mask) old_mask = spd_block_handle_signals(); \
-	PG_TRY(); \
+#define SPD_SIGBLOCK_TRY(old_mask, ...) old_mask = spd_block_handle_signals(); \
+	PG_TRY(__VA_ARGS__); \
 	{
-#define SPD_SIGBLOCK_END_TRY(old_mask) } PG_CATCH(); \
+#define SPD_SIGBLOCK_END_TRY(old_mask, ...) } PG_CATCH(__VA_ARGS__); \
 	{ \
 		spd_set_sigmask(old_mask); \
 		PG_RE_THROW(); \
-	} PG_END_TRY(); \
+	} PG_END_TRY(__VA_ARGS__); \
 	spd_set_sigmask(old_mask);
 
 /* Get command tag of query */

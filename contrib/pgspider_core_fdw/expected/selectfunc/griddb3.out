@@ -86,9 +86,9 @@ CREATE FOREIGN TABLE s3__pgspider_svr__0 (
 --Testcase 11:
 CREATE EXTENSION griddb_fdw;
 --Testcase 12:
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw  OPTIONS (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw  OPTIONS (notification_member '127.0.0.1:10001', clustername 'dockerGridDB');
 --Testcase 13:
-CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username 'admin', password 'testadmin');
+CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username 'admin', password 'admin');
 --Testcase 14:
 CREATE FOREIGN TABLE s3__griddb_svr__0 (
        date timestamp without time zone  OPTIONS (rowkey 'true'),
@@ -3885,10 +3885,13 @@ SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:0
 --Testcase 194:
 SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL: pgspider_fdw fail to get tuples from child process
+{
+ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152009
-  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=43)
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=172.17.0.3:10001, partition=17)
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
-
+}
 --
 --if user selects non-unique functions which Griddb only supports in WHERE clause => do not push down
 --if user selects unique functions which Griddb only supports in WHERE clause => still push down, return error of Griddb
@@ -4068,7 +4071,7 @@ SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
 SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
 --Testcase 203:
@@ -4348,7 +4351,7 @@ SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
 SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
 --Testcase 215:
@@ -4373,7 +4376,7 @@ SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
 SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
 --Testcase 217:
@@ -4398,7 +4401,7 @@ SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
 SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
 --Testcase 219:
@@ -4422,10 +4425,13 @@ SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
 --Testcase 220:
 SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL: pgspider_fdw fail to get tuples from child process
+{
+ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=17)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
+}
 --Testcase 221:
 EXPLAIN VERBOSE
 SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
@@ -4448,7 +4454,7 @@ SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
 SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
 --Testcase 223:
@@ -4472,13 +4478,10 @@ SELECT array_length(boolarray) FROM s3 ORDER BY 1;
 --Testcase 224:
 SELECT array_length(boolarray) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL: pgspider_fdw fail to get tuples from child process
-{
-ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-}
+
 --Testcase 225:
 EXPLAIN VERBOSE
 SELECT element(1, stringarray) FROM s3 ORDER BY 1;
@@ -4501,7 +4504,7 @@ SELECT element(1, stringarray) FROM s3 ORDER BY 1;
 SELECT element(1, stringarray) FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=172.17.0.3:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
 --
@@ -7084,7 +7087,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=127.0.0.1:10001, partition=43)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=172.17.0.3:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ
 
 --rows for sampling does not exist => return rows that contains interpolated values.
@@ -7143,7 +7146,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150', 5, 'MILLISECOND') FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=127.0.0.1:10001, partition=43)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=172.17.0.3:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ
 
 --In linearly interpolating the value of the previous and next rows, if one of the values does not exist => the sampling row will not be returned
@@ -7169,7 +7172,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500
 SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=43)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=172.17.0.3:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
 
 --if the first parameter is not set, * will be added as the first parameter.
@@ -7381,7 +7384,7 @@ SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
 SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: GridDB-API is failed by 150014
-  [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=127.0.0.1:10001, partition=43)
+  [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=172.17.0.3:10001, partition=43)
   [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS
 
 --

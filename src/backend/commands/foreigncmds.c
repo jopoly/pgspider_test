@@ -1731,6 +1731,8 @@ spd_get_table_mapping_option_name(ForeignServer *server)
 		return "collection";
 	else if (strcmp(fdwname, "parquet_s3_fdw") == 0)
 		return "dirname";
+	else if (strcmp(fdwname, "objstorage_fdw") == 0)
+		return "dirname";
 	else if (strcmp(fdwname, "influxdb_fdw") == 0 || strcmp(fdwname, "oracle_fdw") == 0)
 		return "table";
 	else
@@ -1770,6 +1772,37 @@ spd_get_datasource_table_name(Relation rel)
 
 	/* There is no table mapping option, this mean datasource table and foreign table has same name */
 	return RelationGetRelationName(rel);
+}
+
+/**
+ * @brief Get the datasource table option
+ *
+ * @param[in] rel relation
+ * @param[in] option value
+ * @return char*
+ */
+static char *
+spd_get_datasource_option_value(Relation rel, const char *option)
+{
+	ForeignTable   *table;
+	ListCell	   *lc;
+
+	/* Return source table name if it not a FOREIGN TABLE */
+	if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+	{
+		table = GetForeignTable(RelationGetRelid(rel));
+
+		foreach (lc, table->options)
+		{
+			DefElem	*od = lfirst(lc);
+
+			if (strcmp(option, od->defname) == 0)
+				return defGetString(od);
+		}
+	}
+
+	/* There is no table option, return null */
+	return NULL;
 }
 
 /**
@@ -1817,6 +1850,86 @@ spd_skip_fdw_option(char *fdw_name, char *option)
 }
 
 /**
+ * @brief Append special option for objstorage_fdw: dirname, filename, format
+ *
+ * @param[in] server migrate destination server
+ * @param[in] srcrel migrate source table relation
+ * @return char*
+ */
+static char*
+spd_create_objstorage_fdw_option(MigrateServerItem * server, Relation srcrel)
+{
+
+	bool has_format   = false;
+	bool has_dirname  = false;
+	bool has_filename = false;
+	char *dirname  = NULL;
+	char *filename = NULL;
+	char *format   = NULL;
+	const char *dirname_opt    = "dirname";
+	const char *filename_opt   = "filename";
+	const char *format_opt     = "format";
+	const char *default_format = "json";
+    StringInfoData buf;
+    ListCell       *optcell;
+
+    initStringInfo(&buf);
+
+	foreach(optcell, server->dest_server_options)
+	{
+		DefElem    *od = lfirst(optcell);
+		if (strcmp(format_opt, od->defname) == 0)
+			has_format = true;
+		else if (strcmp(dirname_opt, od->defname) == 0)
+			has_dirname = true;
+		else if (strcmp(filename_opt, od->defname) == 0)
+			has_filename = true;
+	}
+
+    if( has_format && (has_dirname || has_filename) )
+    {
+        return NULL;
+    }
+
+	if (!has_format)
+	{
+		format = spd_get_datasource_option_value(srcrel, format_opt);
+
+		if (format)
+			appendStringInfo(&buf, "%s %s", format_opt,  quote_literal_cstr(format));
+		else  /* There is no setting format. format set to default */
+			appendStringInfo(&buf, "%s '%s'", format_opt, default_format);
+
+	}
+
+	if (!has_dirname && !has_filename)
+	{
+		dirname = spd_get_datasource_option_value(srcrel, dirname_opt);
+		if (dirname)
+		{ /* Inherit dirname from source table */
+			appendStringInfoString(&buf, ", ");
+			appendStringInfo(&buf, "%s %s", dirname_opt, quote_literal_cstr(dirname));
+		}
+		else
+		{
+			filename = spd_get_datasource_option_value(srcrel, filename_opt);
+			if (filename)
+			{ /* Inherit filename from source table */
+				appendStringInfoString(&buf, ", ");
+				appendStringInfo(&buf, "%s %s", filename_opt, quote_literal_cstr(filename));
+			}
+			else
+			{ /* There is no setting for table mapping. Default convert to dirname */
+				appendStringInfoString(&buf, ", ");
+				appendStringInfo(&buf, "%s %s", dirname_opt, quote_literal_cstr(spd_get_datasource_table_name(srcrel)));
+			}
+		}
+	}
+
+    return pstrdup(buf.data);
+}
+
+/**
  * @brief create CREATE FOREIGN TABLE command
  *
  * @param buf returned sql
@@ -1839,6 +1952,8 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 	Oid			serverID = InvalidOid;
 	Oid			userID = InvalidOid;
 	ForeignDataWrapper *fdw;
+    ForeignServer      *foreign_server = NULL;
+	bool		is_objstorage_fdw = false;
 
 	if (relay == NULL)
 	{
@@ -1895,7 +2010,9 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 	appendStringInfo(&buf, ") SERVER %s", quote_identifier(server_name));
 
 	/* get table mapping option of dest server */
-	table_mapping_opt = spd_get_table_mapping_option_name(GetForeignServerByName(server_name, false));
+	foreign_server = GetForeignServerByName(server_name, false);
+	is_objstorage_fdw = strcmp(GetForeignDataWrapper(foreign_server->fdwid)->fdwname, "objstorage_fdw") == 0;
+	table_mapping_opt = spd_get_table_mapping_option_name(foreign_server);
 
 	appendStringInfoString(&buf, " OPTIONS (");
 
@@ -1923,8 +2040,8 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 		appendStringInfo(&buf, "%s '%s'", od->defname, defGetString(od));
 	}
 
-	/* append table mapping option if needed */
-	if (!has_table_mapping_opt)
+	/* append table mapping option if needed. Not apply to objstorage_fdw due to handle in later */
+	if (!is_objstorage_fdw && !has_table_mapping_opt)
 	{
 		if (!first)
 			appendStringInfoString(&buf, ", ");
@@ -1948,6 +2065,21 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 			appendStringInfo(&buf, "batch_size '%d'", DCT_DEFAULT_BATCH_SIZE);
 		else
 			appendStringInfo(&buf, "batch_size '%d'", batch_size);
+		
+		first = false;
+	}
+
+	/* append special option for objstorage_fdw */
+	if (is_objstorage_fdw)
+	{   
+        char *objstorage_fdw_option = spd_create_objstorage_fdw_option(server, srcrel);
+        if (objstorage_fdw_option)
+        {
+            if (!first)
+                appendStringInfoString(&buf, ", ");
+            appendStringInfoString(&buf, objstorage_fdw_option);
+            first = false;
+        }
 	}
 
 	appendStringInfoString(&buf, ");");

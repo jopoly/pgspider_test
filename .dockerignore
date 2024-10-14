@@ -1,5 +1,5 @@
-*.sh
-!docker-entrypoint.sh
+docker/*.sh
+!docker/docker-entrypoint.sh
 Jenkinsfile
 PGSpider_rpm/
 .gitlab-ci.yml

@@ -17,7 +17,7 @@ endif
 EXTENSION = pgspider_core_fdw
 DATA = pgspider_core_fdw--1.0.sql
 
-REGRESS = ported_postgres_fdw pd_stored
+REGRESS = pgspider_core_fdw tenantcmd/multi_tenant_command tenantcmd/ported_multi_tenant_pgspider_core_fdw ported_import_s3 ported_parquet_s3_fdw ported_parquet_s3_fdw2 pd_stored
 
 EXTRA_INSTALL = contrib/pgspider_keepalive
 
@@ -40,9 +40,9 @@ OUTFILES=$(FILES:%=$(DSTDIR)/%)
 
 check: temp-install
 
-temp-install: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
+temp-install: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/pgspider_keepalive contrib/pgspider_fdw contrib/parquet_s3_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/oracle_fdw
 
-checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/pgspider_keepalive contrib/pgspider_fdw contrib/dblink
+checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/pgspider_keepalive contrib/pgspider_fdw contrib/dblink contrib/parquet_s3_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/influxdb_fdw contrib/oracle_fdw
 
 #check: copyfdw
 copyfdw:

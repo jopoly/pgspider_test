@@ -1,5 +1,5 @@
 #
-# Simplified makefile for running the PostgreSQL regression tests
+# Simplified makefile for running the PGSpider regression tests
 # in an RPM installation
 #
 

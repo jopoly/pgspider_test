@@ -92,9 +92,9 @@ CREATE FOREIGN TABLE s3__pgspider_svr__0 (
 --Testcase 11:
 CREATE EXTENSION griddb_fdw;
 --Testcase 12:
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw  OPTIONS (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw  OPTIONS (notification_member '127.0.0.1:10001', clustername 'dockerGridDB');
 --Testcase 13:
-CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username 'admin', password 'testadmin');
+CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username 'admin', password 'admin');
 --Testcase 14:
 CREATE FOREIGN TABLE s3__griddb_svr__0 (
        date timestamp without time zone  OPTIONS (rowkey 'true'),
